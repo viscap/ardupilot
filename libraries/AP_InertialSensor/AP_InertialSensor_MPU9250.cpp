@@ -418,7 +418,7 @@ bool AP_InertialSensor_MPU9250::_hardware_init(void)
     // Chip reset
     uint8_t tries;
     for (tries = 0; tries<5; tries++) {
-        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
+//        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
         hal.scheduler->delay(100);
 
         // Wake up device and select GyroZ clock. Note that the
@@ -444,7 +444,7 @@ bool AP_InertialSensor_MPU9250::_hardware_init(void)
     _register_write(MPUREG_PWR_MGMT_2, 0x00);            // only used for wake-up in accelerometer only low power mode
 
     // Disable I2C bus (recommended on datasheet)
-    _register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
+//    _register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
 
     _default_filter_hz = _default_filter();
 
