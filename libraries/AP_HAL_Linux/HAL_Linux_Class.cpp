@@ -143,7 +143,7 @@ void HAL_Linux::init(int argc,char* const argv[]) const
     i2c->begin();
     rcout->init(NULL);
     rcin->init(NULL);
-    uartA->begin(115200);    
+    uartA->begin(57600);
     spi->init(NULL);
     utilInstance.init(argc, argv);
 }
