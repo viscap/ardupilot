@@ -67,7 +67,7 @@ float SITL_State::_current;
 AP_Baro_HIL *SITL_State::_barometer;
 AP_InertialSensor *SITL_State::_ins;
 SITLScheduler *SITL_State::_scheduler;
-AP_Compass_HIL *SITL_State::_compass;
+Compass *SITL_State::_compass;
 
 int SITL_State::_sitl_fd;
 SITL *SITL_State::_sitl;
@@ -213,7 +213,7 @@ void SITL_State::_sitl_setup(void)
 	_sitl = (SITL *)AP_Param::find_object("SIM_");
 	_barometer = (AP_Baro_HIL *)AP_Param::find_object("GND_");
 	_ins = (AP_InertialSensor *)AP_Param::find_object("INS_");
-	_compass = (AP_Compass_HIL *)AP_Param::find_object("COMPASS_");
+	_compass = (Compass *)AP_Param::find_object("COMPASS_");
 
     if (_sitl != NULL) {
         // setup some initial values

@@ -18,7 +18,7 @@
 
 #include "../AP_Baro/AP_Baro.h"
 #include "../AP_InertialSensor/AP_InertialSensor.h"
-#include "../AP_Compass/AP_Compass.h"
+#include "../AP_Compass/Compass.h"
 #include "../SITL/SITL.h"
 
 class HAL_AVR_SITL;
@@ -124,7 +124,7 @@ private:
     static AP_Baro_HIL *_barometer;
     static AP_InertialSensor *_ins;
     static SITLScheduler *_scheduler;
-    static AP_Compass_HIL *_compass;
+    static Compass *_compass;
 
     static int _sitl_fd;
     static SITL *_sitl;
