@@ -69,15 +69,4 @@ void AP_Notify::update(void)
     for (int i = 0; i < CONFIG_NOTIFY_DEVICES_COUNT; i++) {
         _devices[i]->update();
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-    //reset the events
-    memset(&AP_Notify::events, 0, sizeof(AP_Notify::events));
 }
-=======
-}
->>>>>>> 691d890... AP_Notify: Replace ToshibaLED with DycoLED usage in Linux Boards
-=======
-}
->>>>>>> 691d890... AP_Notify: Replace ToshibaLED with DycoLED usage in Linux Boards
