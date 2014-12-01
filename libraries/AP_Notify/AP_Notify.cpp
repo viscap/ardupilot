@@ -43,9 +43,9 @@ struct AP_Notify::notify_events_type AP_Notify::events;
         NotifyDevice *AP_Notify::_devices[CONFIG_NOTIFY_DEVICES_COUNT] = {&boardled, &navioled};
     #else
         AP_BoardLED boardled;
-        ToshibaLED_I2C toshibaled;
+        DycoLED dycoled;
         ToneAlarm_Linux tonealarm;
-        NotifyDevice *AP_Notify::_devices[CONFIG_NOTIFY_DEVICES_COUNT] = {&boardled, &toshibaled, &tonealarm};
+        NotifyDevice *AP_Notify::_devices[CONFIG_NOTIFY_DEVICES_COUNT] = {&boardled, &dycoled, &tonealarm};
     #endif
 #else
     AP_BoardLED boardled;
@@ -69,7 +69,11 @@ void AP_Notify::update(void)
     for (int i = 0; i < CONFIG_NOTIFY_DEVICES_COUNT; i++) {
         _devices[i]->update();
     }
+<<<<<<< HEAD
 
     //reset the events
     memset(&AP_Notify::events, 0, sizeof(AP_Notify::events));
 }
+=======
+}
+>>>>>>> 691d890... AP_Notify: Replace ToshibaLED with DycoLED usage in Linux Boards
