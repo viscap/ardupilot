@@ -2,8 +2,8 @@
 
 /****************************************************************************
  *
- *	 Coded by Víctor Mayoral Vilches <v.mayoralv@gmail.com> using 
- *	 l3gd20.cpp <https://github.com/diydrones/PX4Firmware> from the PX4 Development Team.
+ *   Coded by Víctor Mayoral Vilches <v.mayoralv@gmail.com> using 
+ *   l3gd20.cpp <https://github.com/diydrones/PX4Firmware> from the PX4 Development Team.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,122 +36,120 @@
  ****************************************************************************/
 
 #include <AP_HAL.h>
-#if defined(NOT_YET)
-
 #include "AP_InertialSensor_L3GD20.h"
 
 extern const AP_HAL::HAL& hal;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
-	#define L3GD20_DRDY_PIN 70
+    #define L3GD20_DRDY_PIN 70
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-	#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-		#include "../AP_HAL_Linux/GPIO.h"
-		#define L3GD20_DRDY_PIN BBB_P8_34  // GYRO_DRDY
-	#endif
+    #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+        #include "../AP_HAL_Linux/GPIO.h"
+        #define L3GD20_DRDY_PIN BBB_P8_34  // GYRO_DRDY
+    #endif
 #endif
 
 /* L3GD20 definitions */
 /* Orientation on board */
-#define SENSOR_BOARD_ROTATION_000_DEG	0
-#define SENSOR_BOARD_ROTATION_090_DEG	1
-#define SENSOR_BOARD_ROTATION_180_DEG	2
-#define SENSOR_BOARD_ROTATION_270_DEG	3
+#define SENSOR_BOARD_ROTATION_000_DEG   0
+#define SENSOR_BOARD_ROTATION_090_DEG   1
+#define SENSOR_BOARD_ROTATION_180_DEG   2
+#define SENSOR_BOARD_ROTATION_270_DEG   3
 
 /* SPI protocol address bits */
-#define DIR_READ				(1<<7)
-#define DIR_WRITE				(0<<7)
-#define ADDR_INCREMENT				(1<<6)
+#define DIR_READ                (1<<7)
+#define DIR_WRITE               (0<<7)
+#define ADDR_INCREMENT              (1<<6)
 
 /* register addresses */
-#define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM_H 				0xD7
-#define WHO_I_AM				0xD4
+#define ADDR_WHO_AM_I           0x0F
+#define WHO_I_AM_H              0xD7
+#define WHO_I_AM                0xD4
 
-#define ADDR_CTRL_REG1			0x20
-#define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
+#define ADDR_CTRL_REG1          0x20
+#define REG1_RATE_LP_MASK           0xF0 /* Mask to guard partial register update */
 /* keep lowpass low to avoid noise issues */
-#define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
-#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (0<<5) | (1<<4))
-#define RATE_190HZ_LP_50HZ		((0<<7) | (1<<6) | (1<<5) | (0<<4))
-#define RATE_190HZ_LP_70HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
-#define RATE_380HZ_LP_20HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
-#define RATE_380HZ_LP_25HZ		((1<<7) | (0<<6) | (0<<5) | (1<<4))
-#define RATE_380HZ_LP_50HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
-#define RATE_380HZ_LP_100HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
-#define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (0<<5) | (0<<4))
-#define RATE_760HZ_LP_35HZ		((1<<7) | (1<<6) | (0<<5) | (1<<4))
-#define RATE_760HZ_LP_50HZ		((1<<7) | (1<<6) | (1<<5) | (0<<4))
-#define RATE_760HZ_LP_100HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_95HZ_LP_25HZ       ((0<<7) | (0<<6) | (0<<5) | (1<<4))
+#define RATE_190HZ_LP_25HZ      ((0<<7) | (1<<6) | (0<<5) | (1<<4))
+#define RATE_190HZ_LP_50HZ      ((0<<7) | (1<<6) | (1<<5) | (0<<4))
+#define RATE_190HZ_LP_70HZ      ((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_380HZ_LP_20HZ      ((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define RATE_380HZ_LP_25HZ      ((1<<7) | (0<<6) | (0<<5) | (1<<4))
+#define RATE_380HZ_LP_50HZ      ((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define RATE_380HZ_LP_100HZ     ((1<<7) | (0<<6) | (1<<5) | (1<<4))
+#define RATE_760HZ_LP_30HZ      ((1<<7) | (1<<6) | (0<<5) | (0<<4))
+#define RATE_760HZ_LP_35HZ      ((1<<7) | (1<<6) | (0<<5) | (1<<4))
+#define RATE_760HZ_LP_50HZ      ((1<<7) | (1<<6) | (1<<5) | (0<<4))
+#define RATE_760HZ_LP_100HZ     ((1<<7) | (1<<6) | (1<<5) | (1<<4))
 
-#define ADDR_CTRL_REG2			0x21
-#define ADDR_CTRL_REG3			0x22
-#define ADDR_CTRL_REG4			0x23
-#define REG4_RANGE_MASK				0x30 /* Mask to guard partial register update */
-#define RANGE_250DPS				(0<<4)
-#define RANGE_500DPS				(1<<4)
-#define RANGE_2000DPS				(3<<4)
+#define ADDR_CTRL_REG2          0x21
+#define ADDR_CTRL_REG3          0x22
+#define ADDR_CTRL_REG4          0x23
+#define REG4_RANGE_MASK             0x30 /* Mask to guard partial register update */
+#define RANGE_250DPS                (0<<4)
+#define RANGE_500DPS                (1<<4)
+#define RANGE_2000DPS               (3<<4)
 
-#define ADDR_CTRL_REG5			0x24
-#define ADDR_REFERENCE			0x25
-#define ADDR_OUT_TEMP			0x26
-#define ADDR_STATUS_REG			0x27
-#define ADDR_OUT_X_L			0x28
-#define ADDR_OUT_X_H			0x29
-#define ADDR_OUT_Y_L			0x2A
-#define ADDR_OUT_Y_H			0x2B
-#define ADDR_OUT_Z_L			0x2C
-#define ADDR_OUT_Z_H			0x2D
-#define ADDR_FIFO_CTRL_REG		0x2E
-#define ADDR_FIFO_SRC_REG		0x2F
-#define ADDR_INT1_CFG			0x30
-#define ADDR_INT1_SRC			0x31
-#define ADDR_INT1_TSH_XH		0x32
-#define ADDR_INT1_TSH_XL		0x33
-#define ADDR_INT1_TSH_YH		0x34
-#define ADDR_INT1_TSH_YL		0x35
-#define ADDR_INT1_TSH_ZH		0x36
-#define ADDR_INT1_TSH_ZL		0x37
-#define ADDR_INT1_DURATION		0x38
+#define ADDR_CTRL_REG5          0x24
+#define ADDR_REFERENCE          0x25
+#define ADDR_OUT_TEMP           0x26
+#define ADDR_STATUS_REG         0x27
+#define ADDR_OUT_X_L            0x28
+#define ADDR_OUT_X_H            0x29
+#define ADDR_OUT_Y_L            0x2A
+#define ADDR_OUT_Y_H            0x2B
+#define ADDR_OUT_Z_L            0x2C
+#define ADDR_OUT_Z_H            0x2D
+#define ADDR_FIFO_CTRL_REG      0x2E
+#define ADDR_FIFO_SRC_REG       0x2F
+#define ADDR_INT1_CFG           0x30
+#define ADDR_INT1_SRC           0x31
+#define ADDR_INT1_TSH_XH        0x32
+#define ADDR_INT1_TSH_XL        0x33
+#define ADDR_INT1_TSH_YH        0x34
+#define ADDR_INT1_TSH_YL        0x35
+#define ADDR_INT1_TSH_ZH        0x36
+#define ADDR_INT1_TSH_ZL        0x37
+#define ADDR_INT1_DURATION      0x38
 
 /* Internal configuration values */
-#define REG1_POWER_NORMAL			(1<<3)
-#define REG1_Z_ENABLE				(1<<2)
-#define REG1_Y_ENABLE				(1<<1)
-#define REG1_X_ENABLE				(1<<0)
+#define REG1_POWER_NORMAL           (1<<3)
+#define REG1_Z_ENABLE               (1<<2)
+#define REG1_Y_ENABLE               (1<<1)
+#define REG1_X_ENABLE               (1<<0)
 
-#define REG4_BDU				(1<<7)
-#define REG4_BLE				(1<<6)
-//#define REG4_SPI_3WIRE			(1<<0)
+#define REG4_BDU                (1<<7)
+#define REG4_BLE                (1<<6)
+//#define REG4_SPI_3WIRE            (1<<0)
 
-#define REG5_FIFO_ENABLE			(1<<6)
-#define REG5_REBOOT_MEMORY			(1<<7)
+#define REG5_FIFO_ENABLE            (1<<6)
+#define REG5_REBOOT_MEMORY          (1<<7)
 
-#define STATUS_ZYXOR				(1<<7)
-#define STATUS_ZOR				(1<<6)
-#define STATUS_YOR				(1<<5)
-#define STATUS_XOR				(1<<4)
-#define STATUS_ZYXDA				(1<<3)
-#define STATUS_ZDA				(1<<2)
-#define STATUS_YDA				(1<<1)
-#define STATUS_XDA				(1<<0)
+#define STATUS_ZYXOR                (1<<7)
+#define STATUS_ZOR              (1<<6)
+#define STATUS_YOR              (1<<5)
+#define STATUS_XOR              (1<<4)
+#define STATUS_ZYXDA                (1<<3)
+#define STATUS_ZDA              (1<<2)
+#define STATUS_YDA              (1<<1)
+#define STATUS_XDA              (1<<0)
 
-#define FIFO_CTRL_BYPASS_MODE			(0<<5)
-#define FIFO_CTRL_FIFO_MODE			(1<<5)
-#define FIFO_CTRL_STREAM_MODE			(1<<6)
-#define FIFO_CTRL_STREAM_TO_FIFO_MODE		(3<<5)
-#define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
+#define FIFO_CTRL_BYPASS_MODE           (0<<5)
+#define FIFO_CTRL_FIFO_MODE         (1<<5)
+#define FIFO_CTRL_STREAM_MODE           (1<<6)
+#define FIFO_CTRL_STREAM_TO_FIFO_MODE       (3<<5)
+#define FIFO_CTRL_BYPASS_TO_STREAM_MODE     (1<<7)
 
-#define L3GD20_DEFAULT_RATE			760
-#define L3GD20_DEFAULT_RANGE_DPS		2000
-#define L3GD20_DEFAULT_FILTER_FREQ		30
+#define L3GD20_DEFAULT_RATE         760
+#define L3GD20_DEFAULT_RANGE_DPS        2000
+#define L3GD20_DEFAULT_FILTER_FREQ      30
 
 
 // const float AP_InertialSensor_L3GD20::_gyro_scale = (0.0174532f / 16.4f);
 
 
 AP_InertialSensor_L3GD20::AP_InertialSensor_L3GD20() : 
-	AP_InertialSensor(),
+    AP_InertialSensor(),
     _drdy_pin(NULL),
     _initialised(false),
     _L3GD20_product_id(AP_PRODUCT_ID_NONE)
@@ -399,7 +397,7 @@ void AP_InertialSensor_L3GD20::_register_write_check(uint8_t reg, uint8_t val)
     _register_write(reg, val);
     readed = _register_read(reg);
     if (readed != val){
-	hal.console->printf_P(PSTR("Values doesn't match; written: %02x; read: %02x "), val, readed);
+    hal.console->printf_P(PSTR("Values doesn't match; written: %02x; read: %02x "), val, readed);
     }
 #if L3GD20_DEBUG
     hal.console->printf_P(PSTR("Values written: %02x; readed: %02x "), val, readed);
@@ -441,80 +439,80 @@ void AP_InertialSensor_L3GD20::_register_write_check(uint8_t reg, uint8_t val)
 
 void AP_InertialSensor_L3GD20::disable_i2c(void)
 {
-	uint8_t retries = 10;
-	while (retries--) {
-		// add retries
-		uint8_t a = _register_read(0x05);
-		_register_write(0x05, (0x20 | a));
-		if (_register_read(0x05) == (a | 0x20)) {
-			return;
-		}
-	}	
-	hal.scheduler->panic(PSTR("L3GD20: Unable to disable I2C"));
+    uint8_t retries = 10;
+    while (retries--) {
+        // add retries
+        uint8_t a = _register_read(0x05);
+        _register_write(0x05, (0x20 | a));
+        if (_register_read(0x05) == (a | 0x20)) {
+            return;
+        }
+    }   
+    hal.scheduler->panic(PSTR("L3GD20: Unable to disable I2C"));
 }
 
 uint8_t AP_InertialSensor_L3GD20::set_samplerate(uint16_t frequency)
 {
-	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
-	if (frequency == 0)
-		frequency = 760;
+    uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
+    if (frequency == 0)
+        frequency = 760;
 
-	/* use limits good for H or non-H models */
-	if (frequency <= 100) {
-		// _current_rate = 95;
-		bits |= RATE_95HZ_LP_25HZ;
+    /* use limits good for H or non-H models */
+    if (frequency <= 100) {
+        // _current_rate = 95;
+        bits |= RATE_95HZ_LP_25HZ;
 
-	} else if (frequency <= 200) {
-		// _current_rate = 190;
-		bits |= RATE_190HZ_LP_50HZ;
+    } else if (frequency <= 200) {
+        // _current_rate = 190;
+        bits |= RATE_190HZ_LP_50HZ;
 
-	} else if (frequency <= 400) {
-		// _current_rate = 380;
-		bits |= RATE_380HZ_LP_50HZ;
+    } else if (frequency <= 400) {
+        // _current_rate = 380;
+        bits |= RATE_380HZ_LP_50HZ;
 
-	} else if (frequency <= 800) {
-		// _current_rate = 760;
-		bits |= RATE_760HZ_LP_50HZ;
-	} else {
-		return -1;
-	}
-	_register_write(ADDR_CTRL_REG1, bits);
-	return 0;
+    } else if (frequency <= 800) {
+        // _current_rate = 760;
+        bits |= RATE_760HZ_LP_50HZ;
+    } else {
+        return -1;
+    }
+    _register_write(ADDR_CTRL_REG1, bits);
+    return 0;
 }
 
 uint8_t AP_InertialSensor_L3GD20::set_range(uint8_t max_dps)
 {
-	uint8_t bits = REG4_BDU;
-	float new_range_scale_dps_digit;
-	float new_range;
+    uint8_t bits = REG4_BDU;
+    float new_range_scale_dps_digit;
+    float new_range;
 
-	if (max_dps == 0) {
-		max_dps = 2000;
-	}
-	if (max_dps <= 250) {
-		new_range = 250;
-		bits |= RANGE_250DPS;
-		new_range_scale_dps_digit = 8.75e-3f;
+    if (max_dps == 0) {
+        max_dps = 2000;
+    }
+    if (max_dps <= 250) {
+        new_range = 250;
+        bits |= RANGE_250DPS;
+        new_range_scale_dps_digit = 8.75e-3f;
 
-	} else if (max_dps <= 500) {
-		new_range = 500;
-		bits |= RANGE_500DPS;
-		new_range_scale_dps_digit = 17.5e-3f;
+    } else if (max_dps <= 500) {
+        new_range = 500;
+        bits |= RANGE_500DPS;
+        new_range_scale_dps_digit = 17.5e-3f;
 
-	} else if (max_dps <= 2000) {
-		new_range = 2000;
-		bits |= RANGE_2000DPS;
-		new_range_scale_dps_digit = 70e-3f;
+    } else if (max_dps <= 2000) {
+        new_range = 2000;
+        bits |= RANGE_2000DPS;
+        new_range_scale_dps_digit = 70e-3f;
 
-	} else {
-		return -1;
-	}
+    } else {
+        return -1;
+    }
 
-	// _gyro_range_rad_s = new_range / 180.0f * M_PI_F;
-	// _gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;	
-	_gyro_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;	    
-	_register_write(ADDR_CTRL_REG4, bits);
-	return 0;
+    // _gyro_range_rad_s = new_range / 180.0f * M_PI_F;
+    // _gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F; 
+    _gyro_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;      
+    _register_write(ADDR_CTRL_REG4, bits);
+    return 0;
 }
 
 bool AP_InertialSensor_L3GD20::_hardware_init(Sample_rate sample_rate)
@@ -527,33 +525,33 @@ bool AP_InertialSensor_L3GD20::_hardware_init(Sample_rate sample_rate)
     _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
        
     // ensure the chip doesn't interpret any other bus traffic as I2C
-	disable_i2c();
+    disable_i2c();
 
-	// Chip reset 
-	/* set default configuration */
-	_register_write(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
+    // Chip reset 
+    /* set default configuration */
+    _register_write(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
     hal.scheduler->delay(1);
-	_register_write(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
+    _register_write(ADDR_CTRL_REG2, 0);     /* disable high-pass filters */
     hal.scheduler->delay(1);
-	_register_write(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
+    _register_write(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
     hal.scheduler->delay(1);
-	_register_write(ADDR_CTRL_REG4, REG4_BDU);
+    _register_write(ADDR_CTRL_REG4, REG4_BDU);
     hal.scheduler->delay(1);
-	_register_write(ADDR_CTRL_REG5, 0);
-    hal.scheduler->delay(1);
-
-	_register_write(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
+    _register_write(ADDR_CTRL_REG5, 0);
     hal.scheduler->delay(1);
 
-	/* disable FIFO. This makes things simpler and ensures we
-	 * aren't getting stale data. It means we must run the hrt
-	 * callback fast enough to not miss data. */
-	_register_write(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
+    _register_write(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);      /* disable wake-on-interrupt */
     hal.scheduler->delay(1);
 
-	set_samplerate(0); // 760Hz
+    /* disable FIFO. This makes things simpler and ensures we
+     * aren't getting stale data. It means we must run the hrt
+     * callback fast enough to not miss data. */
+    _register_write(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
     hal.scheduler->delay(1);
-	set_range(L3GD20_DEFAULT_RANGE_DPS);	
+
+    set_samplerate(0); // 760Hz
+    hal.scheduler->delay(1);
+    set_range(L3GD20_DEFAULT_RANGE_DPS);    
     hal.scheduler->delay(1);
 
     // //TODO: Filtering
@@ -632,4 +630,3 @@ float AP_InertialSensor_L3GD20::get_delta_time() const
     // the sensor runs at 200Hz
     return 0.005 * _num_samples;
 }
-#endif

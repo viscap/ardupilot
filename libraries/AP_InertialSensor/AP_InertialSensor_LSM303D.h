@@ -25,7 +25,7 @@ public:
     bool                wait_for_sample(uint16_t timeout_ms);
 
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float            	get_delta_time() const;
+    float               get_delta_time() const;
 
     uint16_t error_count(void) const { return _error_count; }
     bool healthy(void) const { return _error_count <= 4; }
@@ -71,7 +71,7 @@ private:
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;
 
-    uint16_t					_num_samples;
+    uint16_t                    _num_samples;
     float                       _accel_scale;
     float                       _mag_scale;
 
@@ -100,7 +100,7 @@ private:
 public:
 
 #if LSM303D_DEBUG
-    void						_dump_registers(void);
+    void                        _dump_registers(void);
 #endif
 };
 

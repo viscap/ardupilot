@@ -1,11 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
-#if defined(NOT_YET)
-
 /****************************************************************************
  *
- *	 Coded by Víctor Mayoral Vilches <v.mayoralv@gmail.com> using 
- *	 lsm3030d.cpp <https://github.com/diydrones/PX4Firmware> from the PX4 Development Team.
+ *   Coded by Víctor Mayoral Vilches <v.mayoralv@gmail.com> using 
+ *   lsm3030d.cpp <https://github.com/diydrones/PX4Firmware> from the PX4 Development Team.
  *
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,13 +40,13 @@
 extern const AP_HAL::HAL& hal;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
-	#define LSM303D_DRDY_PIN 70
+    #define LSM303D_DRDY_PIN 70
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-	#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-		#include "../AP_HAL_Linux/GPIO.h"
-		#define LSM303D_DRDY_X_PIN BBB_P8_8  // ACCEL DRDY
+    #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+        #include "../AP_HAL_Linux/GPIO.h"
+        #define LSM303D_DRDY_X_PIN BBB_P8_8  // ACCEL DRDY
         #define LSM303D_DRDY_M_PIN BBB_P8_10  // MAGNETOMETER DRDY
-	#endif
+    #endif
 #endif
 
 /* SPI protocol address bits */
@@ -480,7 +477,7 @@ void AP_InertialSensor_LSM303D::_register_write_check(uint8_t reg, uint8_t val)
     _register_write(reg, val);
     readed = _register_read(reg);
     if (readed != val){
-	hal.console->printf_P(PSTR("Values doesn't match; written: %02x; read: %02x "), val, readed);
+    hal.console->printf_P(PSTR("Values doesn't match; written: %02x; read: %02x "), val, readed);
     }
 #if LSM303D_DEBUG
     hal.console->printf_P(PSTR("Values written: %02x; readed: %02x "), val, readed);
@@ -730,7 +727,7 @@ bool AP_InertialSensor_LSM303D::_hardware_init(Sample_rate sample_rate)
     _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
        
     // ensure the chip doesn't interpret any other bus traffic as I2C
-	disable_i2c();
+    disable_i2c();
 
 
     /* enable accel*/
@@ -828,4 +825,3 @@ float AP_InertialSensor_LSM303D::get_delta_time() const
     // the sensor runs at 200Hz
     return 0.005 * _num_samples;
 }
-#endif
