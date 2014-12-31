@@ -29,10 +29,10 @@ LinuxSPIDeviceDriver LinuxSPIDeviceManager::_device[LINUX_SPI_DEVICE_NUM_DEVICES
     LinuxSPIDeviceDriver(2, 0, AP_HAL::SPIDevice_MS5611,     SPI_MODE_3, 8, BBB_P9_42,  10*MHZ,10*MHZ),
     LinuxSPIDeviceDriver(2, 0, AP_HAL::SPIDevice_MPU6000,    SPI_MODE_3, 8, BBB_P9_28,  500*1000, 20*MHZ),
     /* MPU9250 is restricted to 1MHz for non-data and interrupt registers */
-    LinuxSPIDeviceDriver(2, AP_HAL::SPIDevice_MPU9250,    SPI_MODE_3, 8, BBB_P9_23,  1*MHZ, 20*MHZ),
+    LinuxSPIDeviceDriver(2, 0, AP_HAL::SPIDevice_MPU9250,    SPI_MODE_3, 8, BBB_P9_23,  1*MHZ, 20*MHZ),
     /* MPU9255 is the next revision of the InvenSense MPU925x family */
-    LinuxSPIDeviceDriver(2, AP_HAL::SPIDevice_MPU9255,    SPI_MODE_3, 8, BBB_P9_23,  1*MHZ, 20*MHZ),
-    LinuxSPIDeviceDriver(2, AP_HAL::SPIDevice_Dataflash,  SPI_MODE_3, 8, BBB_P8_12,  6*MHZ, 6*MHZ),
+    LinuxSPIDeviceDriver(2, 0, AP_HAL::SPIDevice_MPU9255,    SPI_MODE_3, 8, BBB_P9_23,  1*MHZ, 20*MHZ),
+    LinuxSPIDeviceDriver(2, 0, AP_HAL::SPIDevice_Dataflash,  SPI_MODE_3, 8, BBB_P8_12,  6*MHZ, 6*MHZ),
 };
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO
 LinuxSPIDeviceDriver LinuxSPIDeviceManager::_device[LINUX_SPI_DEVICE_NUM_DEVICES] = {
