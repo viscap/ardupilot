@@ -12,6 +12,7 @@
 #include <AP_Math.h>
 #include <AP_Param.h>
 #include <StorageManager.h>
+#include <AP_Notify.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -56,7 +57,10 @@ void loop(void)
         
         spi->transaction(tx, rx, 2);
 
-        hal.console->printf("WHO_AM_I for %s: 0x%02x\n", whoami_list[i].name, (unsigned)rx[1]);
+        hal.console->printf("WHO_AM_I for %s: 0x%02x\n", whoami_list[i].name, (unsigned)rx[1]);        
+        //hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+        hal.gpio->toggle(HAL_GPIO_A_LED_PIN);
+        hal.scheduler->delay(2000);
         spi_sem->give();
     }        
     hal.scheduler->delay(200);
