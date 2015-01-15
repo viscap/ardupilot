@@ -84,7 +84,7 @@
 #else
  # define AP_BATT_VOLT_PIN                  5
  # define AP_BATT_CURR_PIN                  6
- # define AP_BATT_VOLTDIVIDER_DEFAULT       10.1
+ # define AP_BATT_VOLTDIVIDER_DEFAULT       11.54
  # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0
 #endif
 
