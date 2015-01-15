@@ -24,7 +24,7 @@
 #include <AP_HAL.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 #include "NotifyDevice.h"
-#include "../AP_HAL_LINUX/DycoLEDDriver.h"
+#include <DycoLEDDriver.h>
 
 #define MAX_NUM_LEDS    35
 #define MAX_PATTERN_STEPS 16
@@ -55,6 +55,8 @@ public:
     // update - updates led according to timed_updated.  Should be
     // called at 50Hz
     void update();
+    //Cretate a new public class
+    void set_pattern(uint16_t led, uint8_t patt);
 protected:
     void set_preset_pattern(uint16_t led,uint8_t patt);
 };

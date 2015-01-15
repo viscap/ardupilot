@@ -46,28 +46,34 @@ to FULL brightness (1.0) thus completing 3 basic transitions
 of loop i.e. from BLUE to RED to GREEN. The loop will until
 another pattern or solid color is set.
 */
-#include <AP_HAL.h>
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+#include <AP_HAL.h> 
+#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX 
 #include <AP_GPS.h>
 #include "DycoLED_Linux.h"
 #include "AP_Notify.h"
 
+#include <stdio.h>
+
 extern const AP_HAL::HAL& hal;
 
-static led_pattern preset_pattern[14]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                               //INITIALISING
+static led_pattern preset_pattern[16]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                               //INITIALISING
                                        {{RED,BLUE,GREEN},{250,250,250},{1.0,1.0,1.0},15,3},                 //SAV_TRIM_ESC_CAL
                                        {{BLACK,YELLOW},{250,250},{1.0,1.0},15,2},                           //FS_RAD_BATT
                                        {{BLUE,YELLOW},{250,250},{1.0,1.0},15,2},                            //FS_GPS
                                        {{PURPLE,YELLOW},{250,250},{1.0,1.0},15,2},                          //BARO_GLITCH
                                        {{RED,YELLOW},{250,250},{1.0,1.0},15,2},                             //EKF_BAD
                                        {{GREEN,GREEN},{1000,1000},{1.0,1.0},1,2},                           //ARMED_GPS
-                                       {{BLUE,BLUE},{1000,1000},{1.0,1.0},1,2},                             //ARMED_NOGPS
+                                       {{BLUE,BLUE,BLUE},{1000,1000,1000},{1.0,1.0,1.0},15,3},                             //ARMED_NOGPS
                                        {{BLACK,YELLOW},{500,500},{1.0,1.0},15,2},                           //PREARM_CHECK
                                        {{BLACK,GREEN},{500,500},{1.0,1.0},15,2},                            //DISARMED_GPS
                                        {{BLACK,BLUE},{500,500},{1.0,1.0},31,2},                             //DISARMED_NOGPS
                                        {{GREEN,BLACK,GREEN,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4}, //SAFE_STROBE
                                        {{RED,BLACK,RED,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},     //FAIL_STROBE
-                                       {{BLUE,BLACK,BLUE,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4}};  //NEUTRAL_STROBE
+                                       {{BLUE,BLACK,BLUE,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},   //NEUTRAL_STROBE
+                                       {{GREEN},{200},{0.05},20000,1},
+                                       {{GREEN},{200},{0.05},1,1}};  
+                                       // {colors},{duration}{brightness(min=0.05,max=1.0)},res(min=1),[pattern length(if nº of colors < len ->> 
+                                       // led off (nº of colors - len) time)]}
  
 
 bool DycoLED::init()
@@ -78,6 +84,13 @@ bool DycoLED::init()
 
 void DycoLED::set_preset_pattern(uint16_t led,uint8_t patt)
 {
+    patt = 11;
+      hal.util->led_set_pattern(led,preset_pattern[patt].color,preset_pattern[patt].brightness,preset_pattern[patt].time,
+                                 preset_pattern[patt].res,preset_pattern[patt].len);
+}
+
+void DycoLED::set_pattern(uint16_t led,uint8_t patt)
+{
       hal.util->led_set_pattern(led,preset_pattern[patt].color,preset_pattern[patt].brightness,preset_pattern[patt].time,
                                  preset_pattern[patt].res,preset_pattern[patt].len);
 }
@@ -87,12 +100,14 @@ void DycoLED::set_preset_pattern(uint16_t led,uint8_t patt)
 void DycoLED::update()
 {
     if (AP_Notify::flags.initialising) {
+        //printf("LEDs: initialising\n");
         set_preset_pattern(STATUS_LED,NOTIFY_INITIALISING);
         set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
         return;                  // exit so no other status modify this pattern
     }
     
     if (AP_Notify::flags.save_trim || AP_Notify::flags.esc_calibration){
+        //printf("LEDs: calibration\n");
         set_preset_pattern(STATUS_LED,NOTIFY_SAV_TRIM_ESC_CAL);
         set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
         return;
@@ -119,6 +134,7 @@ void DycoLED::update()
     }
     
     if (AP_Notify::flags.armed) {
+        //printf("LEDs: armed\n");
         if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
             hal.util->led_set_solid_color(STATUS_LED,GREEN);
             set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
