@@ -68,11 +68,11 @@
  # define AP_BATT_VOLTDIVIDER_DEFAULT       1.1
  # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0
 #else
- # define AP_BATT_VOLT_PIN                  -1
- # define AP_BATT_CURR_PIN                  -1
- # define AP_BATT_VOLTDIVIDER_DEFAULT       10.1
+ # define AP_BATT_VOLT_PIN                  5
+ # define AP_BATT_CURR_PIN                  6
+ # define AP_BATT_VOLTDIVIDER_DEFAULT       11.54
  # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0
-#endif
+ #endif
 
 // Other values normally set directly by mission planner
 // # define AP_BATT_VOLTDIVIDER_DEFAULT 15.70   // Volt divider for AttoPilot 50V/90A sensor
