@@ -31,6 +31,38 @@
 #define STATUS_LED 0
 #define STROBE_LED 1
 
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+//Erle Robotics status leds
+//5 LEDS per arm (10 wired together), 1 status, 4 for defining front/back
+//for orientation purposes
+// front (0-4) leds, back (5-9)
+  #define FRONT_STATUS_LED 0
+  #define FRONT_LED0 1
+  #define FRONT_LED1 2
+  #define FRONT_LED2 3
+  #define FRONT_LED3 4
+
+  #define BACK_STATUS_LED 5
+  #define BACK_LED0 6
+  #define BACK_LED1 7
+  #define BACK_LED2 8
+  #define BACK_LED3 9  
+
+  #define front_led_address 1
+  #define back_led_address 6 
+  #define number_front_leds 4
+  #define number_back_leds 4
+
+  //ERLE PATTERNS AND COLORS
+  //ARM COLORS   
+  #define FRONT_COLOR 14
+  #define BACK_COLOR 15
+  #define ARMED_GPS 11
+  #define ARMED_NOGPS 18
+  #define INITIALIZING 13 
+  #define DISARMED 17
+
 #define NOTIFY_INITIALISING             0
 #define NOTIFY_SAV_TRIM_ESC_CAL         1
 #define NOTIFY_FS_RAD_BATT              2
@@ -55,10 +87,13 @@ public:
     // update - updates led according to timed_updated.  Should be
     // called at 50Hz
     void update();
-    //Cretate a new public class
-    void set_pattern(uint16_t led, uint8_t patt);
+
+    //turn arm leds on, depending on if the're front/back leds
+    void set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t n_front_leds, uint8_t n_back_leds);
+
 protected:
     void set_preset_pattern(uint16_t led,uint8_t patt);
+
 };
 
 struct led_pattern
@@ -69,5 +104,6 @@ struct led_pattern
     uint8_t res;
     uint8_t len;
 };
+#endif
 #endif
 #endif // __TOSHIBA_LED_H__

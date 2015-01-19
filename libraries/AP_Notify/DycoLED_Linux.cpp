@@ -56,7 +56,7 @@ another pattern or solid color is set.
 
 extern const AP_HAL::HAL& hal;
 
-static led_pattern preset_pattern[16]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                               //INITIALISING
+static led_pattern preset_pattern[19]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                               //INITIALISING
                                        {{RED,BLUE,GREEN},{250,250,250},{1.0,1.0,1.0},15,3},                 //SAV_TRIM_ESC_CAL
                                        {{BLACK,YELLOW},{250,250},{1.0,1.0},15,2},                           //FS_RAD_BATT
                                        {{BLUE,YELLOW},{250,250},{1.0,1.0},15,2},                            //FS_GPS
@@ -67,14 +67,18 @@ static led_pattern preset_pattern[16]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},   
                                        {{BLACK,YELLOW},{500,500},{1.0,1.0},15,2},                           //PREARM_CHECK
                                        {{BLACK,GREEN},{500,500},{1.0,1.0},15,2},                            //DISARMED_GPS
                                        {{BLACK,BLUE},{500,500},{1.0,1.0},31,2},                             //DISARMED_NOGPS
-                                       {{GREEN,BLACK,GREEN,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4}, //SAFE_STROBE
+                                       {{GREEN,BLACK,GREEN,BLACK},{100,50,100,100},{1.0,1.0,1.0,1.0},1,4}, //SAFE_STROBE
                                        {{RED,BLACK,RED,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},     //FAIL_STROBE
-                                       {{BLUE,BLACK,BLUE,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},   //NEUTRAL_STROBE
-                                       {{GREEN},{200},{0.05},20000,1},
-                                       {{GREEN},{200},{0.05},1,1}};  
+                                       {{BLUE,BLACK,BLUE,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},   //NEUTRAL_STROBE, Initialising
+                                       {{YELLOW},{200},{0.1},10,1}, //FRONT LEDS
+                                       {{PURPLE},{200},{0.1},10,1},//BACK LEDS
+                                       {{BLACK},{200},{0.05},1,1},
+                                       {{RED,BLACK,RED,BLACK},{100,50,100,50},{1.0,1.0,1.0,1.0},1,4}, //DISARMED
+                                       {{GREEN,BLUE,GREEN,BLUE},{100,100,100,100},{1.0,1.0,1.0,1.0},1,4},};  //ARMED_NOGPS
+
                                        // {colors},{duration}{brightness(min=0.05,max=1.0)},res(min=1),[pattern length(if nº of colors < len ->> 
                                        // led off (nº of colors - len) time)]}
- 
+
 
 bool DycoLED::init()
 {
@@ -84,76 +88,151 @@ bool DycoLED::init()
 
 void DycoLED::set_preset_pattern(uint16_t led,uint8_t patt)
 {
-    patt = 11;
+    
       hal.util->led_set_pattern(led,preset_pattern[patt].color,preset_pattern[patt].brightness,preset_pattern[patt].time,
                                  preset_pattern[patt].res,preset_pattern[patt].len);
 }
 
-void DycoLED::set_pattern(uint16_t led,uint8_t patt)
+
+void DycoLED::set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t n_front_leds, uint8_t n_back_leds)
 {
-      hal.util->led_set_pattern(led,preset_pattern[patt].color,preset_pattern[patt].brightness,preset_pattern[patt].time,
-                                 preset_pattern[patt].res,preset_pattern[patt].len);
+  int i=front_led_add;
+
+  for (i; i<=n_front_leds; i++)
+  {
+    set_preset_pattern(i,FRONT_COLOR);
+  }
+
+  int index_back = back_led_add + number_back_leds;
+  i=back_led_add;
+
+  for (i; i<index_back; i++)
+  {
+    set_preset_pattern(i,BACK_COLOR);
+  }
 }
- 
+
 // update - updates led according to timed_updated.  Should be called
 // at 50Hz
 void DycoLED::update()
 {
     if (AP_Notify::flags.initialising) {
         //printf("LEDs: initialising\n");
+      #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+        set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+        set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
+        set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
+      
+      #else
         set_preset_pattern(STATUS_LED,NOTIFY_INITIALISING);
         set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
-        return;                  // exit so no other status modify this pattern
+      #endif  
+      return;                  // exit so no other status modify this pattern
     }
     
     if (AP_Notify::flags.save_trim || AP_Notify::flags.esc_calibration){
-        //printf("LEDs: calibration\n");
         set_preset_pattern(STATUS_LED,NOTIFY_SAV_TRIM_ESC_CAL);
         set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
         return;
     }
     if(AP_Notify::flags.failsafe_radio || AP_Notify::flags.failsafe_battery){
+      #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+
+      #else
         set_preset_pattern(STATUS_LED,NOTIFY_FS_RAD_BATT);
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
-        return;
+      #endif
+      return;
     }
     if(AP_Notify::flags.failsafe_gps || AP_Notify::flags.gps_glitching){
+      #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+      #else
         set_preset_pattern(STATUS_LED,NOTIFY_FS_GPS);
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
-        return;
+      #endif
+      return;
     }
     if(AP_Notify::flags.baro_glitching){
+      #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+      #else
         set_preset_pattern(STATUS_LED,NOTIFY_BARO_GLITCH);
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
-        return;
+      #endif
+      return;
     }
     if(AP_Notify::flags.ekf_bad){
+      #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+      #else
         set_preset_pattern(STATUS_LED,NOTIFY_EKF_BAD);
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
-        return;
+      #endif
+      return;
     }
     
     if (AP_Notify::flags.armed) {
-        //printf("LEDs: armed\n");
+
+      //#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+      //      set_preset_pattern(FRONT_STATUS_LED,ARMED_GPS);
+      //      set_preset_pattern(BACK_STATUS_LED, ARMED_GPS);
+      //      set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+      //#else
         if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
             hal.util->led_set_solid_color(STATUS_LED,GREEN);
+
+            #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            set_preset_pattern(FRONT_STATUS_LED,ARMED_GPS);
+            set_preset_pattern(BACK_STATUS_LED, ARMED_GPS);
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            #else
             set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
+            #endif
+
         } else{
             hal.util->led_set_solid_color(STATUS_LED,BLUE);
+            #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+            set_preset_pattern(FRONT_STATUS_LED,ARMED_NOGPS);
+            set_preset_pattern(BACK_STATUS_LED, ARMED_NOGPS);
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            #else
             set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
+            #endif   
         }
+        //#endif
     } else{
         if (!AP_Notify::flags.pre_arm_check) {
-            set_preset_pattern(STATUS_LED,NOTIFY_PREARM_CHECK);
-            set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
+          #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
+            set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+          #else
+          set_preset_pattern(STATUS_LED,NOTIFY_PREARM_CHECK);
+          set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
+          #endif  
+
         } else{
+
+          #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            set_preset_pattern(FRONT_STATUS_LED,DISARMED);
+            set_preset_pattern(BACK_STATUS_LED,DISARMED);
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            #else
             if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_GPS);
                 set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
-            } else{
+            }
+            //#endif 
+            else{
+              //#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+              //set_preset_pattern(FRONT_STATUS_LED,17);
+              //set_preset_pattern(BACK_STATUS_LED,17);
+              //set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+
+              //#else
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_NOGPS);
                 set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
-            }
+              //#endif
+            } 
+            #endif
         }
     }
 }
