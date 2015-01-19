@@ -38,21 +38,15 @@
 //for orientation purposes
 // front (0-4) leds, back (5-9)
   #define FRONT_STATUS_LED 0
-  #define FRONT_LED0 1
-  #define FRONT_LED1 2
-  #define FRONT_LED2 3
-  #define FRONT_LED3 4
+  #define FRONT_STATUS_LED1 5
 
-  #define BACK_STATUS_LED 5
-  #define BACK_LED0 6
-  #define BACK_LED1 7
-  #define BACK_LED2 8
-  #define BACK_LED3 9  
+  #define BACK_STATUS_LED 10
+  #define BACK_STATUS_LED1 15
 
   #define front_led_address 1
-  #define back_led_address 6 
-  #define number_front_leds 4
-  #define number_back_leds 4
+  #define back_led_address 11 
+  #define number_front_leds 10
+  #define number_back_leds 10
 
   //ERLE PATTERNS AND COLORS
   //ARM COLORS   

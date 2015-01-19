@@ -98,17 +98,26 @@ void DycoLED::set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t 
 {
   int i=front_led_add;
 
-  for (i; i<=n_front_leds; i++)
+  for (i; i<n_front_leds; i++)
   {
-    set_preset_pattern(i,FRONT_COLOR);
+    
+    if (i!=(front_led_add) || i!=(front_led_add+5))
+    {
+      //printf("front i %i\n", i);
+      set_preset_pattern(i,FRONT_COLOR);  
+    }
   }
 
-  int index_back = back_led_add + number_back_leds;
+  //int index_back = back_led_add + number_back_leds;
   i=back_led_add;
 
-  for (i; i<index_back; i++)
+  for (i; i<n_back_leds+back_led_add; i++)
   {
-    set_preset_pattern(i,BACK_COLOR);
+    if (i!=(back_led_add) || i!=(back_led_add +5))
+    {
+      //printf("back i %i\n", i);
+      set_preset_pattern(i,BACK_COLOR);  
+    }
   }
 }
 
@@ -122,6 +131,8 @@ void DycoLED::update()
         set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
         set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
         set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
+        set_preset_pattern(FRONT_STATUS_LED1,INITIALIZING);
+        set_preset_pattern(BACK_STATUS_LED1,INITIALIZING);
       
       #else
         set_preset_pattern(STATUS_LED,NOTIFY_INITIALISING);
@@ -179,10 +190,12 @@ void DycoLED::update()
         if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
             hal.util->led_set_solid_color(STATUS_LED,GREEN);
 
-            #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds); 
             set_preset_pattern(FRONT_STATUS_LED,ARMED_GPS);
             set_preset_pattern(BACK_STATUS_LED, ARMED_GPS);
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            set_preset_pattern(FRONT_STATUS_LED1,ARMED_GPS);
+            set_preset_pattern(BACK_STATUS_LED1, ARMED_GPS);
             #else
             set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
             #endif
@@ -190,9 +203,12 @@ void DycoLED::update()
         } else{
             hal.util->led_set_solid_color(STATUS_LED,BLUE);
             #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
             set_preset_pattern(FRONT_STATUS_LED,ARMED_NOGPS);
             set_preset_pattern(BACK_STATUS_LED, ARMED_NOGPS);
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            set_preset_pattern(FRONT_STATUS_LED1,ARMED_NOGPS);
+            set_preset_pattern(BACK_STATUS_LED1, ARMED_NOGPS);
+            
             #else
             set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
             #endif   
@@ -201,9 +217,12 @@ void DycoLED::update()
     } else{
         if (!AP_Notify::flags.pre_arm_check) {
           #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
             set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
             set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            set_preset_pattern(FRONT_STATUS_LED1,INITIALIZING);
+            set_preset_pattern(BACK_STATUS_LED1,INITIALIZING);
+            
           #else
           set_preset_pattern(STATUS_LED,NOTIFY_PREARM_CHECK);
           set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
@@ -212,9 +231,12 @@ void DycoLED::update()
         } else{
 
           #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
+            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
             set_preset_pattern(FRONT_STATUS_LED,DISARMED);
             set_preset_pattern(BACK_STATUS_LED,DISARMED);
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
+            set_preset_pattern(FRONT_STATUS_LED1,DISARMED);
+            set_preset_pattern(BACK_STATUS_LED1,DISARMED);
+            
             #else
             if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_GPS);
