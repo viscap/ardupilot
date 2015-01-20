@@ -41,9 +41,10 @@ struct AP_Notify::notify_events_type AP_Notify::events;
         AP_BoardLED boardled;
         NavioLED_I2C navioled;
         NotifyDevice *AP_Notify::_devices[CONFIG_NOTIFY_DEVICES_COUNT] = {&boardled, &navioled};
-    #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE
+    #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
         AP_BoardLED boardled;
         DycoLED dycoled;
+        ToneAlarm_Linux tonealarm;
         NotifyDevice *AP_Notify::_devices[CONFIG_NOTIFY_DEVICES_COUNT] = {&boardled, &dycoled, &tonealarm};
     #else
         AP_BoardLED boardled;
