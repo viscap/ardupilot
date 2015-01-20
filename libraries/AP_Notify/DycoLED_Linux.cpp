@@ -94,30 +94,25 @@ void DycoLED::set_preset_pattern(uint16_t led,uint8_t patt)
 }
 
 
-void DycoLED::set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t n_front_leds, uint8_t n_back_leds)
+void DycoLED::set_leds (uint8_t n_leds, uint8_t n_arms, uint8_t status_patt)
 {
-  int i=front_led_add;
+  int leds_per_arm = n_leds/n_arms;
 
-  for (i; i<n_front_leds; i++)
+  for (int i=0; i<n_leds; i++)
   {
-    
-    if (i!=(front_led_add) || i!=(front_led_add+5))
+    if (i < (n_leds/n_arms)*2)
     {
-      //printf("front i %i\n", i);
-      set_preset_pattern(i,FRONT_COLOR);  
+      set_preset_pattern(i,FRONT_COLOR);
+    }
+    else 
+    {
+      set_preset_pattern(i,BACK_COLOR);
     }
   }
 
-  //int index_back = back_led_add + number_back_leds;
-  i=back_led_add;
-
-  for (i; i<n_back_leds+back_led_add; i++)
+  for (int a=0; a<n_leds; a = a+leds_per_arm)
   {
-    if (i!=(back_led_add) || i!=(back_led_add +5))
-    {
-      //printf("back i %i\n", i);
-      set_preset_pattern(i,BACK_COLOR);  
-    }
+    set_preset_pattern(a,status_patt);
   }
 }
 
@@ -126,13 +121,8 @@ void DycoLED::set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t 
 void DycoLED::update()
 {
     if (AP_Notify::flags.initialising) {
-        //printf("LEDs: initialising\n");
       #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
-        set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-        set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
-        set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
-        set_preset_pattern(FRONT_STATUS_LED1,INITIALIZING);
-        set_preset_pattern(BACK_STATUS_LED1,INITIALIZING);
+        set_leds(NUMBER_LEDS,STATUS_LED,NUMBER_ARMS,INITIALIZING);
       
       #else
         set_preset_pattern(STATUS_LED,NOTIFY_INITIALISING);
@@ -181,21 +171,11 @@ void DycoLED::update()
     }
     
     if (AP_Notify::flags.armed) {
-
-      //#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
-      //      set_preset_pattern(FRONT_STATUS_LED,ARMED_GPS);
-      //      set_preset_pattern(BACK_STATUS_LED, ARMED_GPS);
-      //      set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-      //#else
         if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
             hal.util->led_set_solid_color(STATUS_LED,GREEN);
 
             #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds); 
-            set_preset_pattern(FRONT_STATUS_LED,ARMED_GPS);
-            set_preset_pattern(BACK_STATUS_LED, ARMED_GPS);
-            set_preset_pattern(FRONT_STATUS_LED1,ARMED_GPS);
-            set_preset_pattern(BACK_STATUS_LED1, ARMED_GPS);
+            set_leds(NUMBER_LEDS,STATUS_LED,NUMBER_ARMS,ARMED_GPS);
             #else
             set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
             #endif
@@ -203,26 +183,15 @@ void DycoLED::update()
         } else{
             hal.util->led_set_solid_color(STATUS_LED,BLUE);
             #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-            set_preset_pattern(FRONT_STATUS_LED,ARMED_NOGPS);
-            set_preset_pattern(BACK_STATUS_LED, ARMED_NOGPS);
-            set_preset_pattern(FRONT_STATUS_LED1,ARMED_NOGPS);
-            set_preset_pattern(BACK_STATUS_LED1, ARMED_NOGPS);
-            
+            set_leds(NUMBER_LEDS,STATUS_LED,NUMBER_ARMS,ARMED_NOGPS); 
             #else
             set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
             #endif   
         }
-        //#endif
     } else{
         if (!AP_Notify::flags.pre_arm_check) {
           #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-            set_preset_pattern(FRONT_STATUS_LED,INITIALIZING);
-            set_preset_pattern(BACK_STATUS_LED,INITIALIZING);
-            set_preset_pattern(FRONT_STATUS_LED1,INITIALIZING);
-            set_preset_pattern(BACK_STATUS_LED1,INITIALIZING);
-            
+            set_leds(NUMBER_LEDS,STATUS_LED,NUMBER_ARMS,INITIALIZING);
           #else
           set_preset_pattern(STATUS_LED,NOTIFY_PREARM_CHECK);
           set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
@@ -231,28 +200,16 @@ void DycoLED::update()
         } else{
 
           #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF 
-            set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-            set_preset_pattern(FRONT_STATUS_LED,DISARMED);
-            set_preset_pattern(BACK_STATUS_LED,DISARMED);
-            set_preset_pattern(FRONT_STATUS_LED1,DISARMED);
-            set_preset_pattern(BACK_STATUS_LED1,DISARMED);
+            set_leds(NUMBER_LEDS,STATUS_LED,NUMBER_ARMS,DISARMED);
             
             #else
             if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_GPS);
                 set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
-            }
-            //#endif 
+            } 
             else{
-              //#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
-              //set_preset_pattern(FRONT_STATUS_LED,17);
-              //set_preset_pattern(BACK_STATUS_LED,17);
-              //set_arm_leds(front_led_address, back_led_address, number_front_leds, number_back_leds);
-
-              //#else
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_NOGPS);
                 set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
-              //#endif
             } 
             #endif
         }

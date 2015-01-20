@@ -36,26 +36,17 @@
 //Erle Robotics status leds
 //5 LEDS per arm (10 wired together), 1 status, 4 for defining front/back
 //for orientation purposes
-// front (0-4) leds, back (5-9)
-  #define FRONT_STATUS_LED 0
-  #define FRONT_STATUS_LED1 5
-
-  #define BACK_STATUS_LED 10
-  #define BACK_STATUS_LED1 15
-
-  #define front_led_address 1
-  #define back_led_address 11 
-  #define number_front_leds 10
-  #define number_back_leds 10
-
-  //ERLE PATTERNS AND COLORS
-  //ARM COLORS   
+  //ERLE PATTERNS AND COLORS  
   #define FRONT_COLOR 14
   #define BACK_COLOR 15
   #define ARMED_GPS 11
   #define ARMED_NOGPS 18
   #define INITIALIZING 13 
   #define DISARMED 17
+
+  #define NUMBER_LEDS 20
+  #define NUMBER_ARMS 4
+  #define STATUS_LED 0 
 
 #define NOTIFY_INITIALISING             0
 #define NOTIFY_SAV_TRIM_ESC_CAL         1
@@ -83,7 +74,11 @@ public:
     void update();
 
     //turn arm leds on, depending on if the're front/back leds
-    void set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t n_front_leds, uint8_t n_back_leds);
+    //void set_arm_leds(uint8_t front_led_add, uint8_t back_led_add, uint8_t n_front_leds, uint8_t n_back_leds);
+
+    //SET_LEDS function: writes back/front colors and status leds depending on
+    //quantity of leds and number of arms, status leds is the first led in each arm.
+    void set_leds (uint8_t n_leds,uint8_t n_arms, uint8_t status_patt);
 
 protected:
     void set_preset_pattern(uint16_t led,uint8_t patt);
