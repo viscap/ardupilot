@@ -363,7 +363,7 @@ AP_InertialSensor::_detect_backends(void)
     #error Unrecognised HAL_INS_TYPE setting
 #endif
 
-#if 0 // disabled due to broken hardware on some PXF capes
+#if 1 // disabled due to broken hardware on some PXF capes
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
     // the PXF also has a MPU6000
     _add_backend(AP_InertialSensor_MPU6000::detect);
