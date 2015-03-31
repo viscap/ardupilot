@@ -92,6 +92,7 @@ etags:
 	cd .. && etags -f ArduCopter/TAGS --lang=c++ $$(git ls-files ArduCopter libraries)
 	cd .. && etags -f ArduPlane/TAGS --lang=c++ $$(git ls-files ArduPlane libraries)
 	cd .. && etags -f APMrover2/TAGS --lang=c++ $$(git ls-files APMrover2 libraries)
+	cd .. && etags -f APMbalancer/TAGS --lang=c++ $$(git ls-files APMbalancer libraries)
 
 clean:
 	@rm -fr $(BUILDROOT)

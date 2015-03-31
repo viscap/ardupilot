@@ -58,11 +58,13 @@ ArduPlane/test/*
 ArduPlane/terrain/*.DAT
 ArduPlane/test.ArduPlane/
 APMrover2/test.APMrover2/
+APMbalancer/test.APMbalancer/
 autotest.lck
 build
 Build.ArduCopter/*
 Build.ArduPlane/*
 Build.APMrover2/*
+Build.APMbalancer/*
 Build.AntennaTracker/*
 cmake_install.cmake
 CMakeCache.txt

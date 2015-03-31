@@ -11,6 +11,8 @@
 
 >>Antenna Tracker : [code](https://github.com/diydrones/ardupilot/tree/master/AntennaTracker), [wiki](http://copter.ardupilot.com/wiki/common-antennatracker-introduction)
 
+>> APMbalancer : [code](https://github.com/diydrones/ardupilot/tree/master/APMbalancer), [wiki]()
+
 ### User Support & Discussion Forums ###
 >>APM Forum: [http://ardupilot.com/forum/index.php](http://ardupilot.com/forum/index.php)
 

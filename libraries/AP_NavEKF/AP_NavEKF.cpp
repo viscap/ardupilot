@@ -73,6 +73,30 @@
 #define FLOW_NOISE_DEFAULT      0.15f
 #define FLOW_GATE_DEFAULT       5
 
+#elif APM_BUILD_TYPE(APM_BUILD_APMbalancer)
+// rover defaults
+#define VELNE_NOISE_DEFAULT     0.5f
+#define VELD_NOISE_DEFAULT      0.7f
+#define POSNE_NOISE_DEFAULT     0.5f
+#define ALT_NOISE_DEFAULT       1.0f
+#define MAG_NOISE_DEFAULT       0.05f
+#define GYRO_PNOISE_DEFAULT     0.015f
+#define ACC_PNOISE_DEFAULT      0.25f
+#define GBIAS_PNOISE_DEFAULT    1E-06f
+#define ABIAS_PNOISE_DEFAULT    0.0002f
+#define MAGE_PNOISE_DEFAULT     0.0003f
+#define MAGB_PNOISE_DEFAULT     0.0003f
+#define VEL_GATE_DEFAULT        6
+#define POS_GATE_DEFAULT        10
+#define HGT_GATE_DEFAULT        10
+#define MAG_GATE_DEFAULT        3
+#define MAG_CAL_DEFAULT         1
+#define GLITCH_ACCEL_DEFAULT    150
+#define GLITCH_RADIUS_DEFAULT   15
+#define FLOW_MEAS_DELAY         25
+#define FLOW_NOISE_DEFAULT      0.15f
+#define FLOW_GATE_DEFAULT       5
+
 #else
 // generic defaults (and for plane)
 #define VELNE_NOISE_DEFAULT     0.3f

@@ -35,6 +35,15 @@ for b in all apm2 sitl linux; do
 done
 popd
 
+echo "Testing APMbalancer build"
+pushd APMbalancer
+for b in all apm2 sitl linux; do
+    pwd
+    make clean
+    make $b -j4
+done
+popd
+
 echo "Testing AntennaTracker build"
 pushd AntennaTracker
 for b in apm2 sitl; do

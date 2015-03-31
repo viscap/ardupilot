@@ -1,0 +1,8 @@
+@INCLUDE = docs/config/default
+
+PROJECT_NAME = "APM:Balancer"
+INPUT = APMbalancer/
+OUTPUT_DIRECTORY = $(DOCS_OUTPUT_BASE)/APMbalancer
+HTML_OUTPUT = .
+TAGFILES = $(DOCS_OUTPUT_BASE)/tags/libraries=../libraries
+

@@ -320,10 +320,81 @@ build_rover() {
     popd
 }
 
+# build balancer binaries
+build_balancer() {
+    tag="$1"
+    echo "Building APMbalancer $tag binaries from $(pwd)"
+    pushd APMbalancer
+    test -n "$VRBRAIN_ROOT" && {
+	echo "Building APMbalancer VRBRAIN binaries"
+	ddir=$binaries/Rover/$hdate/VRX
+        checkout Rover $tag || {
+            checkout Rover "latest"
+            popd
+            return
+        }
+	skip_build $tag $ddir || {
+	    make vrbrain-clean &&
+	    make vrbrain || {
+                echo "Failed build of APMbalancer VRBRAIN $tag"
+                error_count=$((error_count+1))
+                checkout Rover "latest"
+                popd
+                return
+            }
+	    copyit APMbalancer-vrbrain-v45.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v45.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v45.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v45P.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v45P.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v45P.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v51.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v51P.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51P.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51P.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v51Pro.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51Pro.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51Pro.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v51ProP.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51ProP.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v51ProP.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v52.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v52P.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52P.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52P.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v52Pro.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52Pro.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52Pro.hex $ddir $tag &&
+	    copyit APMbalancer-vrbrain-v52ProP.vrx $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52ProP.bin $ddir $tag && 
+	    copyit APMbalancer-vrbrain-v52ProP.hex $ddir $tag &&
+	    copyit APMbalancer-vrubrain-v51.vrx $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v51.bin $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v51.hex $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v51P.vrx $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v51P.bin $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v51P.hex $ddir $tag &&
+	    copyit APMbalancer-vrubrain-v52.vrx $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v52.bin $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v52.hex $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v52P.vrx $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v52P.bin $ddir $tag && 
+	    copyit APMbalancer-vrubrain-v52P.hex $ddir $tag
+	}
+    }
+    checkout Balancer "latest"
+    popd
+}
+
 for build in latest; do
     build_arduplane $build
     build_arducopter $build
     build_rover $build
+    build_balancer $build
 done
 
 rm -rf $TMPDIR

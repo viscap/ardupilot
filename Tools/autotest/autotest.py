@@ -163,6 +163,11 @@ steps = [
     'defaults.APMrover2',
     'drive.APMrover2',
 
+    'build2560.APMbalancer',
+    'build.APMbalancer',
+    'defaults.APMbalancer',
+    'drive.APMbalancer',
+
     'build.ArduCopter',
     'defaults.ArduCopter',
     'fly.ArduCopter',
@@ -204,6 +209,9 @@ def run_step(step):
     if step == 'build.APMrover2':
         return util.build_SIL('APMrover2')
 
+    if step == 'build.APMbalancer':
+        return util.build_SIL('APMbalancer')
+
     if step == 'build.ArduCopter':
         return util.build_SIL('ArduCopter')
 
@@ -213,6 +221,9 @@ def run_step(step):
     if step == 'build2560.APMrover2':
         return util.build_AVR('APMrover2', board='mega2560')
 
+    if step == 'build2560.APMbalancer':
+        return util.build_AVR('APMbalancer', board='mega2560')
+
     if step == 'defaults.ArduPlane':
         return get_default_params('ArduPlane')
 
@@ -221,6 +232,9 @@ def run_step(step):
 
     if step == 'defaults.APMrover2':
         return get_default_params('APMrover2')
+
+    if step == 'defaults.APMbalancer':
+        return get_default_params('APMbalancer')
 
     if step == 'fly.ArduCopter':
         return arducopter.fly_ArduCopter(viewerip=opts.viewerip, map=opts.map)
@@ -233,6 +247,9 @@ def run_step(step):
 
     if step == 'drive.APMrover2':
         return apmrover2.drive_APMrover2(viewerip=opts.viewerip, map=opts.map)
+
+    if step == 'drive.APMbalancer':
+        return apmbalancer.drive_APMbalancer(viewerip=opts.viewerip, map=opts.map)
 
     if step == 'build.All':
         return build_all()
@@ -345,10 +362,18 @@ def write_fullresults():
     results.addglob("APMrover2 log", 'APMrover2-*.BIN')
     results.addglob("APMrover2 core", 'APMrover2.core')
     results.addglob("APMrover2 ELF", 'APMrover2.elf')
+    results.addfile('APMbalancer build log', 'APMbalancer.txt')
+    results.addfile('APMbalancer code size', 'APMbalancer.sizes.txt')
+    results.addfile('APMbalancer stack sizes', 'APMbalancer.framesizes.txt')
+    results.addfile('APMbalancer defaults', 'APMbalancer-defaults.parm')
+    results.addglob("APMbalancer log", 'APMbalancer-*.BIN')
+    results.addglob("APMbalancer core", 'APMbalancer.core')
+    results.addglob("APMbalancer ELF", 'APMbalancer.elf')
     results.addglob('APM:Libraries documentation', 'docs/libraries/index.html')
     results.addglob('APM:Plane documentation', 'docs/ArduPlane/index.html')
     results.addglob('APM:Copter documentation', 'docs/ArduCopter/index.html')
     results.addglob('APM:Rover documentation', 'docs/APMrover2/index.html')
+    results.addglob('APM:Balancer documentation', 'docs/APMbalancer/index.html')
     results.addglobimage("Flight Track", '*.png')
 
     write_webresults(results)

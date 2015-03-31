@@ -29,7 +29,7 @@ usage()
 cat <<EOF
 Usage: sim_vehicle.sh [options] [mavproxy_options]
 Options:
-    -v VEHICLE       vehicle type (ArduPlane, ArduCopter or APMrover2)
+    -v VEHICLE       vehicle type (ArduPlane, ArduCopter or APMrover2, APMbalancer)
                      vehicle type defaults to working directory
     -I INSTANCE      instance of simulator (default 0)
     -V               enable valgrind for memory access checking (very slow!)
@@ -147,7 +147,7 @@ shift $((OPTIND-1))
 kill_tasks() 
 {
     [ "$INSTANCE" -eq "0" ] && {
-        killall -q JSBSim lt-JSBSim ArduPlane.elf ArduCopter.elf APMrover2.elf AntennaTracker.elf
+        killall -q JSBSim lt-JSBSim ArduPlane.elf ArduCopter.elf APMrover2.elf APMbalancer.elf AntennaTracker.elf
         pkill -f runsim.py
         pkill -f sim_tracker.py
         pkill -f sim_rover.py
@@ -310,6 +310,10 @@ case $VEHICLE in
         ;;
     APMrover2)
         RUNSIM="nice $autotest/pysim/sim_rover.py --home=$SIMHOME --rate=400 $EXTRA_SIM"
+        PARMS="Rover.parm"
+        ;;
+    APMbalancer)
+        RUNSIM="nice $autotest/pysim/sim_balancer.py --home=$SIMHOME --rate=400 $EXTRA_SIM"
         PARMS="Rover.parm"
         ;;
     *)

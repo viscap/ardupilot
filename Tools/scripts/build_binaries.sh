@@ -244,6 +244,49 @@ build_rover() {
     popd
 }
 
+# build balancer binaries
+build_balancer() {
+    tag="$1"
+    echo "Building APMbalancer $tag binaries from $(pwd)"
+    pushd APMbalancer
+    for b in apm1 apm2; do
+    echo "Building APMbalancer $b binaries"
+        checkout APMbalancer $tag $b || continue
+    ddir=$binaries/Rover/$hdate/$b
+    skip_build $tag $ddir && continue
+    make clean || continue
+    make $b -j4 || {
+            echo "Failed build of APMbalancer $b $tag"
+            error_count=$((error_count+1))
+            continue
+        }
+    copyit $TMPDIR/APMbalancer.build/APMbalancer.hex $ddir $tag
+    touch $binaries/Rover/$tag
+    done
+    test -n "$PX4_ROOT" && {
+    echo "Building APMbalancer PX4 binaries"
+    ddir=$binaries/Rover/$hdate/PX4
+        checkout APMbalancer $tag PX4 || {
+            checkout APMbalancer "latest" ""
+            popd
+            return
+        }
+    skip_build $tag $ddir || {
+        make px4 || {
+                echo "Failed build of APMbalancer PX4 $tag"
+                error_count=$((error_count+1))
+                checkout APMbalancer "latest" ""
+                popd
+                return
+            }
+        copyit APMbalancer-v1.px4 $binaries/Rover/$hdate/PX4 $tag &&
+        copyit APMbalancer-v2.px4 $binaries/Rover/$hdate/PX4 $tag 
+    }
+    }
+    checkout APMbalancer "latest" ""
+    popd
+}
+
 # build antenna tracker binaries
 build_antennatracker() {
     tag="$1"
@@ -296,6 +339,7 @@ for build in stable beta latest; do
     build_arduplane $build
     build_arducopter $build
     build_rover $build
+    build_balancer $build
     build_antennatracker $build
 done
 

@@ -7,7 +7,7 @@ help:
 	@echo "     http://dev.ardupilot.com/wiki/building-the-code/"
 	@echo ""
 	@echo " Before building a target you need to be in the target vehicle type directory"
-	@echo " e.g. ArduPlane, ArduCopter, APMrover2, AntennaTracker"
+	@echo " e.g. ArduPlane, ArduCopter, APMrover2, AntennaTracker, APMbalancer"
 	@echo " and run \"make configure\""
 	@echo ""
 	@echo " Most targets support a \"-upload\" extension to upload the firmware"

@@ -99,7 +99,7 @@ rsync -a APM/Tools/autotest/web-firmware/ buildlogs/binaries/
 pushd PX4Firmware
 git fetch origin
 git reset --hard origin/master
-for v in ArduPlane ArduCopter APMrover2; do
+for v in ArduPlane ArduCopter APMrover2 APMbalancer; do
     git tag -d $v-beta || true
     git tag -d $v-stable || true
 done
@@ -110,7 +110,7 @@ popd
 pushd PX4NuttX
 git fetch origin
 git reset --hard origin/master
-for v in ArduPlane ArduCopter APMrover2; do
+for v in ArduPlane ArduCopter APMrover2 APMbalancer; do
     git tag -d $v-beta || true
     git tag -d $v-stable || true
 done
@@ -121,7 +121,7 @@ popd
 pushd uavcan
 git fetch origin
 git reset --hard origin/master
-for v in ArduPlane ArduCopter APMrover2; do
+for v in ArduPlane ArduCopter APMrover2 APMbalancer; do
     git tag -d $v-beta || true
     git tag -d $v-stable || true
 done
@@ -148,7 +148,7 @@ popd
 githash=$(cd APM && git rev-parse HEAD)
 hdate=$(date +"%Y-%m-%d-%H:%m")
 
-for d in ArduPlane ArduCopter APMrover2; do
+for d in ArduPlane ArduCopter APMrover2 APMbalancer; do
     pushd APM/$d
     rm -rf ../../buildlogs/$d.build
     (date && TMPDIR=../../buildlogs make) > ../../buildlogs/$d.txt 2>&1

@@ -20,7 +20,7 @@ make clean
 make apm1-nologging
 popd
 
-for d in ArduCopter APMrover2 ArduPlane AntennaTracker; do
+for d in ArduCopter APMrover2 APMbalancer ArduPlane AntennaTracker; do
     pushd $d
     make clean
     make sitl -j4
