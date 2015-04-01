@@ -752,7 +752,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #endif
     { update_mount,          8,     45 },
     { ten_hz_logging_loop,  40,     30 },
-    { fifty_hz_logging_loop, 8,     22 },
+    { fifty_hz_logging_loop, 2,     22 },
     { perf_update,        4000,     20 },
     { read_receiver_rssi,   40,      5 },
 #if FRSKY_TELEM_ENABLED == ENABLED
@@ -824,7 +824,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { gcs_data_stream_send,  2,     950 },
     { update_mount,          2,     450 },
     { ten_hz_logging_loop,  10,     300 },
-    { fifty_hz_logging_loop, 2,     220 },
+    { fifty_hz_logging_loop, 1,     220 },
     { perf_update,        1000,     200 },
     { read_receiver_rssi,   10,      50 },
 #if FRSKY_TELEM_ENABLED == ENABLED
