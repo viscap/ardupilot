@@ -157,8 +157,13 @@ static RCMapper rcmap;
 static AP_BoardConfig BoardConfig;
 
 // primary control channels
-static RC_Channel *channel_steer;
-static RC_Channel *channel_throttle;
+// static RC_Channel *channel_steer;
+// static RC_Channel *channel_throttle;
+static RC_Channel_DC *RCW   // right wheel clockwise
+static RC_Channel_DC *RCCW  // right wheel counter clockwise
+static RC_Channel_DC *LCW   // left wheel clockwise
+static RC_Channel_DC *LCCW  // left wheel counter clockwise
+
 static RC_Channel *channel_learn;
 
 ////////////////////////////////////////////////////////////////////////////////
