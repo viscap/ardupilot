@@ -351,6 +351,8 @@ Compass::_detect_backends(void)
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX && CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_NONE
     _add_backend(AP_Compass_HMC5843::detect);
+    if (_backend_count == 0)
+        _add_backend(AP_Compass_HIL::detect);
     //_add_backend(AP_Compass_AK8963_MPU9250::detect);
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_HIL
     _add_backend(AP_Compass_HIL::detect);
