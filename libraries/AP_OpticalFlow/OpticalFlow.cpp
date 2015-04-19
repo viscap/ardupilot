@@ -43,9 +43,11 @@ const AP_Param::GroupInfo OpticalFlow::var_info[] PROGMEM = {
 // default constructor
 OpticalFlow::OpticalFlow(void) :
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    backend(new AP_OpticalFlow_PX4(*this)),
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    backend(new AP_OpticalFlow_HIL(*this)),
+    backend(new AP_OpticalFlow_PX4(*this))
+#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+    backend(new AP_OpticalFlow_HIL(*this))
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+    backend(new AP_OpticalFlow_Linux(*this))
 #else
     backend(NULL),
 #endif
