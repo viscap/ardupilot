@@ -19,6 +19,7 @@
 #include "AP_RangeFinder_PulsedLightLRF.h"
 #include "AP_RangeFinder_MaxsonarI2CXL.h"
 #include "AP_RangeFinder_PX4.h"
+#include "AP_RangeFinder_LRM30.h"
 #include "AP_RangeFinder_PX4_PWM.h"
 
 // table of user settable parameters
@@ -256,8 +257,11 @@ void RangeFinder::update(void)
 /*
   detect if an instance of a rangefinder is connected. 
  */
+  extern const AP_HAL::HAL& hal;
+
 void RangeFinder::detect_instance(uint8_t instance)
 {
+
     uint8_t type = _type[instance];
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     if (type == RangeFinder_TYPE_PLI2C || 
@@ -296,6 +300,16 @@ void RangeFinder::detect_instance(uint8_t instance)
         }
     }
 #endif
+//#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX && CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_NONE
+    if(type == RangeFinder_TYPE_LRM30){
+        if (AP_RangeFinder_LRM30::detect(*this, instance)) {
+            state[instance].instance = instance;
+            hal.console->println("AP_RangeFinder_LRM30");
+            drivers[instance] = new AP_RangeFinder_LRM30(*this, instance, state[instance]);
+            return;
+        }
+    }
+//#endif
     if (type == RangeFinder_TYPE_ANALOG) {
         // note that analog must be the last to be checked, as it will
         // always come back as present if the pin is valid
