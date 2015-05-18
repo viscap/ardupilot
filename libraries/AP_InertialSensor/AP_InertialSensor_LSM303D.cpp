@@ -180,18 +180,37 @@ extern const AP_HAL::HAL& hal;
 #define LSM303D_ONE_G                   9.80665f
 
 
-AP_InertialSensor_LSM303D::AP_InertialSensor_LSM303D() : 
-    AP_InertialSensor(),
+AP_InertialSensor_LSM303D::AP_InertialSensor_LSM303D(AP_InertialSensor &imu) :
+    AP_InertialSensor_Backend(imu),
+    _last_accel_filter_hz(-1),
+    _shared_data_idx(0),
+    _accel_filter(1000, 15),
+    _have_sample_available(false),
     _drdy_pin_x(NULL),
-    _drdy_pin_m(NULL),
-    _initialised(false),
-    _LSM303D_product_id(AP_PRODUCT_ID_NONE)
+    _drdy_pin_m(NULL)
 {
 }
 
-uint16_t AP_InertialSensor_LSM303D::_init_sensor( Sample_rate sample_rate )
+/*
+  detect the sensor
+ */
+AP_InertialSensor_Backend *AP_InertialSensor_LSM303D::detect(AP_InertialSensor &_imu)
 {
-    if (_initialised) return _LSM303D_product_id;
+    AP_InertialSensor_LSM303D *sensor = new AP_InertialSensor_LSM303D(_imu);
+    if (sensor == NULL) {
+        return NULL;
+    }
+    if (!sensor->_init_sensor()) {
+        delete sensor;
+        return NULL;
+    }
+
+    return sensor;
+}
+
+bool AP_InertialSensor_LSM303D::_init_sensor()
+{
+    if (_initialised) return true;
     _initialised = true;
 
     _spi = hal.spi->device(AP_HAL::SPIDevice_LSM303D);
@@ -221,7 +240,7 @@ uint16_t AP_InertialSensor_LSM303D::_init_sensor( Sample_rate sample_rate )
 
     uint8_t tries = 0;
     do {
-        bool success = _hardware_init(sample_rate);
+        bool success = _hardware_init();
         if (success) {
             hal.scheduler->delay(5+2);
             if (!_spi_sem->take(100)) {
@@ -243,16 +262,8 @@ uint16_t AP_InertialSensor_LSM303D::_init_sensor( Sample_rate sample_rate )
 
     hal.scheduler->resume_timer_procs();
     
-
-    /* read the first lot of data.
-     * _read_data_transaction requires the spi semaphore to be taken by
-     * its caller. */
-    _last_sample_time_micros = hal.scheduler->micros();
-    hal.scheduler->delay(10);
-    if (_spi_sem->take(100)) {
-        _read_data_transaction();
-        _spi_sem->give();
-    }
+    _accel_instance = _imu.register_accel();
+    _product_id = AP_PRODUCT_ID_LSM303D;
 
     // start the timer process to read samples
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&AP_InertialSensor_LSM303D::_poll_data));
@@ -260,11 +271,10 @@ uint16_t AP_InertialSensor_LSM303D::_init_sensor( Sample_rate sample_rate )
 #if LSM303D_DEBUG
     _dump_registers();
 #endif
-    return _LSM303D_product_id;
+    return true;
 }
 
-/*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
-
+/*
 bool AP_InertialSensor_LSM303D::wait_for_sample(uint16_t timeout_ms)
 {
     if (_sample_available()) {
@@ -279,47 +289,29 @@ bool AP_InertialSensor_LSM303D::wait_for_sample(uint16_t timeout_ms)
     }
     return false;
 }
+*/
 
 bool AP_InertialSensor_LSM303D::update( void )
 {
-    // wait for at least 1 sample
-    if (!wait_for_sample(1000)) {
-        return false;
+    // pull the data from the timer shared data buffer
+    uint8_t idx = _shared_data_idx;
+    Vector3f accel = _shared_data[idx]._accel_filtered;
+
+    _have_sample_available = false;    
+    accel *= _accel_range_scale;
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+    // PXF has an additional YAW 180
+    //accel.rotate(ROTATION_YAW_180);
+    //accel.rotate(ROTATION_ROLL_180_YAW_90);
+#endif
+
+    _publish_accel(_accel_instance, accel);
+
+    if (_last_accel_filter_hz != _accel_filter_cutoff()) {
+        _set_accel_filter(_accel_filter_cutoff());
+        _last_accel_filter_hz = _accel_filter_cutoff();
     }
-
-    // disable timer procs for mininum time
-    hal.scheduler->suspend_timer_procs();
-
-    _accel[0]  = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
-    // _mag[0]  = Vector3f(_mag_sum.x, _mag_sum.y, _mag_sum.z);
-
-    _num_samples = _sum_count;
-    _accel_sum.zero();
-    _mag_sum.zero();
-    _sum_count = 0;
-    hal.scheduler->resume_timer_procs();
-
-    _accel[0].rotate(_board_orientation);
-    // TODO change this for the corresponding value
-    // _accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
-
-    // Vector3f accel_scale = _accel_scale[0].get();
-    // _accel[0].x *= accel_scale.x;
-    // _accel[0].y *= accel_scale.y;
-    // _accel[0].z *= accel_scale.z;
-    // _accel[0] -= _accel_offset[0];
-
-    // TODO similarly put mag values in _mag and scale them
-
-    // if (_last_filter_hz != _LSM303D_filter) {
-    //     if (_spi_sem->take(10)) {
-    //         _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
-    //         _set_filter_register(_LSM303D_filter, 0);
-    //         _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_HIGH);
-    //         _error_count = 0;
-    //         _spi_sem->give();
-    //     }
-    // }
 
     return true;
 }
@@ -346,14 +338,16 @@ bool AP_InertialSensor_LSM303D::_data_ready()
  */
 void AP_InertialSensor_LSM303D::_poll_data(void)
 {
+    /*    
+    // OLD IMPLEMENTATION
     if (hal.scheduler->in_timerprocess()) {
         if (!_spi_sem->take_nonblocking()) {
-            /*
-              the semaphore being busy is an expected condition when the
-              mainline code is calling wait_for_sample() which will
-              grab the semaphore. We return now and rely on the mainline
-              code grabbing the latest sample.
-            */
+            
+              // the semaphore being busy is an expected condition when the
+              // mainline code is calling wait_for_sample() which will
+              // grab the semaphore. We return now and rely on the mainline
+              // code grabbing the latest sample.
+            
             return;
         }   
         if (_data_ready()) {
@@ -362,7 +356,7 @@ void AP_InertialSensor_LSM303D::_poll_data(void)
         }
         _spi_sem->give();
     } else {
-        /* Synchronous read - take semaphore */
+        // Synchronous read - take semaphore
         if (_spi_sem->take(10)) {
             if (_data_ready()) {
                 _last_sample_time_micros = hal.scheduler->micros();
@@ -375,6 +369,20 @@ void AP_InertialSensor_LSM303D::_poll_data(void)
                      "failed to take SPI semaphore synchronously"));
         }
     }
+    */
+
+    if (!_spi_sem->take_nonblocking()) {
+        /*
+          the semaphore being busy is an expected condition when the
+          mainline code is calling wait_for_sample() which will
+          grab the semaphore. We return now and rely on the mainline
+          code grabbing the latest sample.
+        */
+        return;
+    }
+    _read_data_transaction();
+    _spi_sem->give();
+
 }
 
 void AP_InertialSensor_LSM303D::_read_data_transaction_accel() 
@@ -400,11 +408,20 @@ void AP_InertialSensor_LSM303D::_read_data_transaction_accel()
     raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
     _spi->transaction((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
-    _accel_sum.x  += raw_accel_report.x;
-    _accel_sum.y  += raw_accel_report.y;
-    _accel_sum.z  += raw_accel_report.z;
+    Vector3f _accel_filtered = _accel_filter.apply(Vector3f(raw_accel_report.x,
+                                                   raw_accel_report.y,
+                                                   - raw_accel_report.x));
+
+    // update the shared buffer
+    uint8_t idx = _shared_data_idx ^ 1;
+    _shared_data[idx]._accel_filtered = _accel_filtered;
+    _shared_data_idx = idx;
+
+    _have_sample_available = true;
+
 }
 
+/*
 void AP_InertialSensor_LSM303D::_read_data_transaction_mag() {
     if (_register_read(ADDR_CTRL_REG7) != _reg7_expected) {
             hal.console->println_P(
@@ -421,7 +438,7 @@ void AP_InertialSensor_LSM303D::_read_data_transaction_mag() {
         int16_t     z;
     } raw_mag_report;
 
-    /* fetch data from the sensor */
+    //fetch data from the sensor 
     memset(&raw_mag_report, 0, sizeof(raw_mag_report));
     raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
     _spi->transaction((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
@@ -430,18 +447,12 @@ void AP_InertialSensor_LSM303D::_read_data_transaction_mag() {
     _mag_sum.y = raw_mag_report.y;
     _mag_sum.z = raw_mag_report.z;
 }
+*/
 
 void AP_InertialSensor_LSM303D::_read_data_transaction() {
     
     _read_data_transaction_accel();
-    _read_data_transaction_mag();
-    _sum_count++;
-
-    if (_sum_count == 0) {
-        // rollover - v unlikely
-        _accel_sum.zero();
-        _mag_sum.zero();
-    }
+    //_read_data_transaction_mag();
 }
 
 uint8_t AP_InertialSensor_LSM303D::_register_read( uint8_t reg )
@@ -494,6 +505,13 @@ void AP_InertialSensor_LSM303D::_register_modify(uint8_t reg, uint8_t clearbits,
     _register_write(reg, val);
 }
 
+/*
+  set the accel filter frequency
+ */
+void AP_InertialSensor_LSM303D::_set_accel_filter(uint8_t filter_hz)
+{
+    _accel_filter.set_cutoff_frequency(1000, filter_hz);
+}
 
 /*
   set the DLPF filter frequency. Assumes caller has taken semaphore
@@ -717,7 +735,7 @@ uint8_t AP_InertialSensor_LSM303D::mag_set_samplerate(uint16_t frequency)
     return 0;
 }
 
-bool AP_InertialSensor_LSM303D::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_LSM303D::_hardware_init(void)
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("LSM303D: Unable to get semaphore"));
@@ -789,6 +807,7 @@ bool AP_InertialSensor_LSM303D::_hardware_init(Sample_rate sample_rate)
     return true;
 }
 
+/*
 // return true if a sample is available
 bool AP_InertialSensor_LSM303D::_sample_available()
 {
@@ -796,7 +815,7 @@ bool AP_InertialSensor_LSM303D::_sample_available()
     // return (_sum_count >> _sample_shift) > 0;
     return (_sum_count) > 0;    
 }
-
+*/
 
 // TODO fix dump registers
 #if LSM303D_DEBUG
@@ -817,11 +836,3 @@ void AP_InertialSensor_LSM303D::_dump_registers(void)
     }
 }
 #endif
-
-
-// get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_LSM303D::get_delta_time() const
-{
-    // the sensor runs at 200Hz
-    return 0.005 * _num_samples;
-}

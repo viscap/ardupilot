@@ -12,55 +12,31 @@
 // enable debug to see a register dump on startup
 #define LSM303D_DEBUG 0
 
-class AP_InertialSensor_LSM303D: public AP_InertialSensor
+class AP_InertialSensor_LSM303D: public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_LSM303D();
+    AP_InertialSensor_LSM303D(AP_InertialSensor &imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
-    bool                update();
+    bool                update();    
+    bool accel_sample_available(void) { return _have_sample_available; }
+    bool gyro_sample_available(void) { return true; }
 
-    // wait for a sample to be available, with timeout in milliseconds
-    bool                wait_for_sample(uint16_t timeout_ms);
+    // detect the sensor
+    static AP_InertialSensor_Backend *detect(AP_InertialSensor &imu);
 
-    // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float               get_delta_time() const;
-
-    uint16_t error_count(void) const { return _error_count; }
-    bool healthy(void) const { return _error_count <= 4; }
-    bool get_accel_health(uint8_t instance) const { return healthy(); }
-
-protected:
-    uint16_t                    _init_sensor( Sample_rate sample_rate );
-
-private:
-    AP_HAL::DigitalSource *_drdy_pin_x;
-    AP_HAL::DigitalSource *_drdy_pin_m;
-    uint8_t         _accel_range_m_s2;
-    float           _accel_range_scale;
-    uint8_t         _accel_samplerate;    
-    uint8_t         _accel_onchip_filter_bandwith;    
-    uint8_t         _mag_range_ga;
-    float           _mag_range_scale;
-    uint8_t         _mag_samplerate;    
-
-    // expceted values of reg1 and reg7 to catch in-flight
-    // brownouts of the sensor
-    uint8_t         _reg1_expected;
-    uint8_t         _reg7_expected;
-
-    bool                 _sample_available();
+private:    
+    bool                 _init_sensor(void);
     void                 _read_data_transaction();
-    void                 _read_data_transaction_accel();
-    void                 _read_data_transaction_mag();         
     bool                 _data_ready();
     void                 _poll_data(void);
     uint8_t              _register_read( uint8_t reg );
     void                 _register_write( uint8_t reg, uint8_t val );
-    void                 _register_write_check(uint8_t reg, uint8_t val);
-    void                 _register_modify(uint8_t reg, uint8_t clearbits, uint8_t setbits);
-    bool                 _hardware_init(Sample_rate sample_rate);
+    void                 _register_write_check(uint8_t reg, uint8_t val);    
+    void                 _register_modify(uint8_t reg, uint8_t clearbits, uint8_t setbits);    
+    bool                 _hardware_init(void);
+    bool                 _sample_available();
     void                 disable_i2c(void);
     uint8_t              accel_set_range(uint8_t max_g);
     uint8_t              accel_set_samplerate(uint16_t frequency);
@@ -71,14 +47,74 @@ private:
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;
 
+    // support for updating filter at runtime
+    int16_t _last_accel_filter_hz;
+
+    // change the filter frequency
+    void _set_accel_filter(uint8_t filter_hz);
+
+    // This structure is used to pass data from the timer which reads
+    // the sensor to the main thread. The _shared_data_idx is used to
+    // prevent race conditions by ensuring the data is fully updated
+    // before being used by the consumer
+    struct {
+        Vector3f _accel_filtered;
+        Vector3f _gyro_filtered;
+    } _shared_data[2];
+    volatile uint8_t _shared_data_idx;
+
+    // Low Pass filters for accel 
+    LowPassFilter2pVector3f _accel_filter;
+
+    // do we currently have a sample pending?
+    bool _have_sample_available;
+
+    // accel instances
+    uint8_t _accel_instance;
+
+    AP_HAL::DigitalSource *_drdy_pin_x;
+    AP_HAL::DigitalSource *_drdy_pin_m;
+    uint8_t         _accel_range_m_s2;
+    float           _accel_range_scale;
+    void            _read_data_transaction_accel();
+    //void                 _read_data_transaction_mag();         
+    uint8_t         _accel_samplerate;    
+    uint8_t         _accel_onchip_filter_bandwith;    
+    uint8_t         _mag_range_ga;
+    float           _mag_range_scale;
+    uint8_t         _mag_samplerate;    
+
+    // expceted values of reg1 and reg7 to catch in-flight
+    // brownouts of the sensor
+    uint8_t         _reg1_expected;
+    uint8_t         _reg7_expected;
+    // ensure we can't initialise twice
+    bool                        _initialised;
+
+
+
+#if LSM303D_DEBUG
+    void                        _dump_registers(void);
+#endif
+};
+
+
+/*
+
+
+    bool                 _sample_available();
+
+    void                 _poll_data(void);
+
+    AP_HAL::SPIDeviceDriver *_spi;
+    AP_HAL::Semaphore *_spi_sem;
+
     uint16_t                    _num_samples;
     float                       _accel_scale;
     float                       _mag_scale;
 
     uint32_t _last_sample_time_micros;
 
-    // ensure we can't initialise twice
-    bool                        _initialised;
     int16_t              _LSM303D_product_id;
 
     // how many hardware samples before we report a sample to the caller
@@ -103,5 +139,6 @@ public:
     void                        _dump_registers(void);
 #endif
 };
+*/
 
 #endif // __AP_INERTIAL_SENSOR_LSM303D_H__
