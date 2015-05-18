@@ -158,6 +158,8 @@ enum HomeState {
 #define AP_PRODUCT_ID_L3G4200D          0x101   // Linux with L3G4200D and ADXL345
 #define AP_PRODUCT_ID_PIXHAWK_FIRE_CAPE 0x102   // Linux with the PixHawk Fire Cape
 #define AP_PRODUCT_ID_MPU9250           0x103   // MPU9250
+#define AP_PRODUCT_ID_LSM303D           0x104   // LSM303D
+#define AP_PRODUCT_ID_L3GD20            0x105   // L3GD20
 #define AP_PRODUCT_ID_VRBRAIN           0x150   // VRBRAIN on NuttX
 
 #endif // _AP_COMMON_H

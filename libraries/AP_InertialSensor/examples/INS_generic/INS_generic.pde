@@ -178,7 +178,7 @@ void run_test()
 
 		if (counter++ % 50 == 0) {
 			// display results
-			hal.console->printf_P(PSTR("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t len:%4.2f \t Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f\n"), 
+			hal.console->printf_P(PSTR("Accel X:%4.4f \t Y:%4.4f \t Z:%4.4f \t len:%4.4f \t Gyro X:%4.4f \t Y:%4.4f \t Z:%4.4f\n"), 
 								  accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z);
 		}
     }

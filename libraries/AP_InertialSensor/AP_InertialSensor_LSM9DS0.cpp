@@ -1,4 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+#if defined(NOT_YET)
+
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -779,3 +781,4 @@ void AP_InertialSensor_LSM9DS0::_dump_registers(void)
 }
 
 #endif // CONFIG_HAL_BOARD
+#endif
