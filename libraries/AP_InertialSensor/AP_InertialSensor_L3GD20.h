@@ -12,57 +12,74 @@
 // enable debug to see a register dump on startup
 #define L3GD20_DEBUG 0
 
-class AP_InertialSensor_L3GD20 : public AP_InertialSensor
+class AP_InertialSensor_L3GD20 : public AP_InertialSensor_Backend
 {
 public:
 
-    AP_InertialSensor_L3GD20();
+    AP_InertialSensor_L3GD20(AP_InertialSensor &imu);
 
     /* Concrete implementation of AP_InertialSensor functions: */
-    bool                update();
-    float               get_gyro_drift_rate();
+    bool update();    
+    bool accel_sample_available(void) { return true; }
+    bool gyro_sample_available(void) { return _have_sample_available; }
 
-    // wait for a sample to be available, with timeout in milliseconds
-    bool                wait_for_sample(uint16_t timeout_ms);
-
-    // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float               get_delta_time() const;
-
-    uint16_t error_count(void) const { return _error_count; }
-    bool healthy(void) const { return _error_count <= 4; }
-    bool get_gyro_health(uint8_t instance) const { return healthy(); }
-    bool get_accel_health(uint8_t instance) const { return healthy(); }
-
-protected:
-    uint16_t                    _init_sensor( Sample_rate sample_rate );
+    // detect the sensor
+    static AP_InertialSensor_Backend *detect(AP_InertialSensor &imu);
 
 private:
-    AP_HAL::DigitalSource *_drdy_pin;
-
-    bool                 _sample_available();
+    bool                 _init_sensor();
     void                 _read_data_transaction();
     bool                 _data_ready();
     void                 _poll_data(void);
     uint8_t              _register_read( uint8_t reg );
     void                 _register_write( uint8_t reg, uint8_t val );
     void                 _register_write_check(uint8_t reg, uint8_t val);
-    bool                 _hardware_init(Sample_rate sample_rate);
+    bool                 _hardware_init(void);
     void                 disable_i2c(void);
+
+    bool                 _sample_available();
     uint8_t              set_samplerate(uint16_t frequency);
     uint8_t              set_range(uint8_t max_dps);
 
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;
 
-    uint16_t                    _num_samples;
+    // support for updating filter at runtime
+    int16_t _last_gyro_filter_hz;
+
+    // change the filter frequency
+    void _set_gyro_filter(uint8_t filter_hz);
+
+    // This structure is used to pass data from the timer which reads
+    // the sensor to the main thread. The _shared_data_idx is used to
+    // prevent race conditions by ensuring the data is fully updated
+    // before being used by the consumer
+    struct {
+        Vector3f _gyro_filtered;        
+    } _shared_data[1];
+    volatile uint8_t _shared_data_idx;
+
+    // Low Pass filters for gyro 
+    LowPassFilter2pVector3f _gyro_filter;
+
+    // do we currently have a sample pending?
+    bool _have_sample_available;
+
+    // gyro instances
+    uint8_t _gyro_instance;    
+    AP_HAL::DigitalSource *_drdy_pin_g;
+    float           _gyro_range_scale;
+    bool                        _initialised;
     float          _gyro_scale;
+
+
+/*
+
+    uint16_t       _num_samples;
 
     uint32_t _last_sample_time_micros;
 
     // ensure we can't initialise twice
-    bool                        _initialised;
-    int16_t              _L3GD20_product_id;
-
     // how many hardware samples before we report a sample to the caller
     uint8_t _sample_shift;
 
@@ -77,6 +94,8 @@ private:
     // the sum of the values since last read
     Vector3l _gyro_sum;
     volatile int16_t _sum_count;
+
+*/
 
 public:
 

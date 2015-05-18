@@ -1,5 +1,4 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
 /****************************************************************************
  *
  *   Coded by Víctor Mayoral Vilches <v.mayoralv@gmail.com> using 
@@ -148,25 +147,43 @@ extern const AP_HAL::HAL& hal;
 // const float AP_InertialSensor_L3GD20::_gyro_scale = (0.0174532f / 16.4f);
 
 
-AP_InertialSensor_L3GD20::AP_InertialSensor_L3GD20() : 
-    AP_InertialSensor(),
-    _drdy_pin(NULL),
-    _initialised(false),
-    _L3GD20_product_id(AP_PRODUCT_ID_NONE)
+AP_InertialSensor_L3GD20::AP_InertialSensor_L3GD20(AP_InertialSensor &imu) : 
+    AP_InertialSensor_Backend(imu),
+    _last_gyro_filter_hz(-1),
+    _gyro_filter(1000, 15),
+    _have_sample_available(false),
+    _drdy_pin_g(NULL)
 {
 }
 
-uint16_t AP_InertialSensor_L3GD20::_init_sensor( Sample_rate sample_rate )
+/*
+  detect the sensor
+ */
+AP_InertialSensor_Backend *AP_InertialSensor_L3GD20::detect(AP_InertialSensor &_imu)
 {
-    if (_initialised) return _L3GD20_product_id;
+    AP_InertialSensor_L3GD20 *sensor = new AP_InertialSensor_L3GD20(_imu);
+    if (sensor == NULL) {
+        return NULL;
+    }
+    if (!sensor->_init_sensor()) {
+        delete sensor;
+        return NULL;
+    }
+
+    return sensor;
+}
+
+bool AP_InertialSensor_L3GD20::_init_sensor()
+{
+    if (_initialised) return true;
     _initialised = true;
 
     _spi = hal.spi->device(AP_HAL::SPIDevice_L3GD20);
     _spi_sem = _spi->get_semaphore();
 
 #ifdef L3GD20_DRDY_PIN
-    _drdy_pin = hal.gpio->channel(L3GD20_DRDY_PIN);
-    _drdy_pin->mode(HAL_GPIO_INPUT);
+    _drdy_pin_g = hal.gpio->channel(L3GD20_DRDY_PIN);
+    _drdy_pin_g->mode(HAL_GPIO_INPUT);
 #endif
 
     hal.scheduler->suspend_timer_procs();
@@ -182,7 +199,7 @@ uint16_t AP_InertialSensor_L3GD20::_init_sensor( Sample_rate sample_rate )
 
     uint8_t tries = 0;
     do {
-        bool success = _hardware_init(sample_rate);
+        bool success = _hardware_init();
         if (success) {
             hal.scheduler->delay(5+2);
             if (!_spi_sem->take(100)) {
@@ -205,15 +222,8 @@ uint16_t AP_InertialSensor_L3GD20::_init_sensor( Sample_rate sample_rate )
     hal.scheduler->resume_timer_procs();
     
 
-    /* read the first lot of data.
-     * _read_data_transaction requires the spi semaphore to be taken by
-     * its caller. */
-    _last_sample_time_micros = hal.scheduler->micros();
-    hal.scheduler->delay(10);
-    if (_spi_sem->take(100)) {
-        _read_data_transaction();
-        _spi_sem->give();
-    }
+    _gyro_instance = _imu.register_gyro();
+    _product_id = AP_PRODUCT_ID_L3GD20;
 
     // start the timer process to read samples
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&AP_InertialSensor_L3GD20::_poll_data));
@@ -221,11 +231,10 @@ uint16_t AP_InertialSensor_L3GD20::_init_sensor( Sample_rate sample_rate )
 #if L3GD20_DEBUG
     _dump_registers();
 #endif
-    return _L3GD20_product_id;
+    return true;
 }
 
-/*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
-
+/*
 bool AP_InertialSensor_L3GD20::wait_for_sample(uint16_t timeout_ms)
 {
     if (_sample_available()) {
@@ -240,40 +249,32 @@ bool AP_InertialSensor_L3GD20::wait_for_sample(uint16_t timeout_ms)
     }
     return false;
 }
+*/
 
 bool AP_InertialSensor_L3GD20::update( void )
 {
-    // wait for at least 1 sample
-    if (!wait_for_sample(1000)) {
-        return false;
+   // pull the data from the timer shared data buffer
+    uint8_t idx = _shared_data_idx;
+    Vector3f gyro = _shared_data[idx]._gyro_filtered;
+
+    _have_sample_available = false;    
+    gyro *= _gyro_range_scale;
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF
+    // PXF has an additional YAW 180
+    //gyro.rotate(ROTATION_YAW_180);
+    //gyro.rotate(ROTATION_ROLL_180_YAW_90);
+#endif
+
+    _publish_gyro(_gyro_instance, gyro);
+
+    if (_last_gyro_filter_hz != _gyro_filter_cutoff()) {
+        _set_gyro_filter(_gyro_filter_cutoff());
+        _last_gyro_filter_hz = _gyro_filter_cutoff();
     }
-
-    // disable timer procs for mininum time
-    hal.scheduler->suspend_timer_procs();
-    _gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
-    _num_samples = _sum_count;
-    _gyro_sum.zero();
-    _sum_count = 0;
-    hal.scheduler->resume_timer_procs();
-
-    _gyro[0].rotate(_board_orientation);
-    _gyro[0] *= _gyro_scale / _num_samples;
-    _gyro[0] -= _gyro_offset[0];
-
-    // if (_last_filter_hz != _L3GD20_filter) {
-    //     if (_spi_sem->take(10)) {
-    //         _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
-    //         _set_filter_register(_L3GD20_filter, 0);
-    //         _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_HIGH);
-    //         _error_count = 0;
-    //         _spi_sem->give();
-    //     }
-    // }
 
     return true;
 }
-
-/*================ HARDWARE FUNCTIONS ==================== */
 
 /**
  * Return true if the L3GD20 has new data available for reading.
@@ -283,8 +284,8 @@ bool AP_InertialSensor_L3GD20::update( void )
  */
 bool AP_InertialSensor_L3GD20::_data_ready()
 {
-    if (_drdy_pin) {
-        return _drdy_pin->read() != 0;
+    if (_drdy_pin_g) {
+        return _drdy_pin_g->read() != 0;
     }
     // TODO: read status register
     return false;
@@ -295,14 +296,15 @@ bool AP_InertialSensor_L3GD20::_data_ready()
  */
 void AP_InertialSensor_L3GD20::_poll_data(void)
 {
+    /*
     if (hal.scheduler->in_timerprocess()) {
         if (!_spi_sem->take_nonblocking()) {
-            /*
-              the semaphore being busy is an expected condition when the
-              mainline code is calling wait_for_sample() which will
-              grab the semaphore. We return now and rely on the mainline
-              code grabbing the latest sample.
-            */
+            
+              // the semaphore being busy is an expected condition when the
+              // mainline code is calling wait_for_sample() which will
+              // grab the semaphore. We return now and rely on the mainline
+              // code grabbing the latest sample.
+            
             return;
         }   
         if (_data_ready()) {
@@ -311,7 +313,7 @@ void AP_InertialSensor_L3GD20::_poll_data(void)
         }
         _spi_sem->give();
     } else {
-        /* Synchronous read - take semaphore */
+        // Synchronous read - take semaphore 
         if (_spi_sem->take(10)) {
             if (_data_ready()) {
                 _last_sample_time_micros = hal.scheduler->micros();
@@ -324,6 +326,22 @@ void AP_InertialSensor_L3GD20::_poll_data(void)
                      "failed to take SPI semaphore synchronously"));
         }
     }
+    */
+    
+    if (!_spi_sem->take_nonblocking()) {
+        /*
+          the semaphore being busy is an expected condition when the
+          mainline code is calling wait_for_sample() which will
+          grab the semaphore. We return now and rely on the mainline
+          code grabbing the latest sample.
+        */
+        return;
+    }
+    _read_data_transaction();
+    _spi_sem->give();
+
+
+
 }
 
 void AP_InertialSensor_L3GD20::_read_data_transaction() {
@@ -353,15 +371,17 @@ void AP_InertialSensor_L3GD20::_read_data_transaction() {
             return;
         }
 #endif
-    _gyro_sum.x += raw_report.x;
-    _gyro_sum.y  += raw_report.y;
-    _gyro_sum.z  -= raw_report.z;
-    _sum_count++;
 
-    if (_sum_count == 0) {
-        // rollover - v unlikely
-        _gyro_sum.zero();
-    }
+    Vector3f _gyro_filtered = _gyro_filter.apply(Vector3f(raw_report.x,
+                                                   raw_report.y,
+                                                   - raw_report.x));
+
+    // update the shared buffer
+    uint8_t idx = _shared_data_idx ^ 1;
+    _shared_data[idx]._gyro_filtered = _gyro_filtered;
+    _shared_data_idx = idx;
+
+    _have_sample_available = true;
 }
 
 uint8_t AP_InertialSensor_L3GD20::_register_read( uint8_t reg )
@@ -515,7 +535,7 @@ uint8_t AP_InertialSensor_L3GD20::set_range(uint8_t max_dps)
     return 0;
 }
 
-bool AP_InertialSensor_L3GD20::_hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_L3GD20::_hardware_init()
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("L3GD20: Unable to get semaphore"));
@@ -587,14 +607,7 @@ bool AP_InertialSensor_L3GD20::_hardware_init(Sample_rate sample_rate)
     return true;
 }
 
-// return the MPU6k gyro drift rate in radian/s/s
-// note that this is much better than the oilpan gyros
-float AP_InertialSensor_L3GD20::get_gyro_drift_rate(void)
-{
-    // 0.5 degrees/second/minute
-    return ToRad(0.5/60);
-}
-
+/*
 // return true if a sample is available
 bool AP_InertialSensor_L3GD20::_sample_available()
 {
@@ -603,6 +616,7 @@ bool AP_InertialSensor_L3GD20::_sample_available()
     return (_sum_count) > 0;    
 }
 
+*/
 
 #if L3GD20_DEBUG
 // dump all config registers - used for debug
@@ -623,10 +637,11 @@ void AP_InertialSensor_L3GD20::_dump_registers(void)
 }
 #endif
 
-
-// get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_L3GD20::get_delta_time() const
+/*
+  set the gyro filter frequency
+ */
+void AP_InertialSensor_L3GD20::_set_gyro_filter(uint8_t filter_hz)
 {
-    // the sensor runs at 200Hz
-    return 0.005 * _num_samples;
+    _gyro_filter.set_cutoff_frequency(1000, filter_hz);
 }
+
