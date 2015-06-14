@@ -732,6 +732,9 @@ private:
     void poshold_roll_controller_to_pilot_override();
     void poshold_pitch_controller_to_pilot_override();
 
+    bool basic_takeoff_init(bool ignore_checks);
+    void basic_takeoff_run();
+
     bool rtl_init(bool ignore_checks);
     void rtl_run();
     void rtl_climb_start();

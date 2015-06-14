@@ -42,7 +42,9 @@ bool Copter::set_mode(uint8_t mode)
         case ALT_HOLD:
             success = althold_init(ignore_checks);
             break;
-
+        case BASIC_TAKEOFF:
+            success = basic_takeoff_init(ignore_checks);
+            break;
         case AUTO:
             success = auto_init(ignore_checks);
             break;
@@ -155,6 +157,10 @@ void Copter::update_flight_mode()
             althold_run();
             break;
 
+        case BASIC_TAKEOFF:
+            basic_takeoff_run();
+            break;
+
         case AUTO:
             auto_run();
             break;
@@ -252,7 +258,7 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
 bool Copter::mode_requires_GPS(uint8_t mode) {
     switch(mode) {
         case AUTO:
-        case GUIDED:
+//a        case GUIDED:
         case LOITER:
         case RTL:
         case CIRCLE:
@@ -283,7 +289,7 @@ bool Copter::mode_has_manual_throttle(uint8_t mode) {
 // mode_allows_arming - returns true if vehicle can be armed in the specified mode
 //  arming_from_gcs should be set to true if the arming request comes from the ground station
 bool Copter::mode_allows_arming(uint8_t mode, bool arming_from_gcs) {
-    if (mode_has_manual_throttle(mode) || mode == LOITER || mode == ALT_HOLD || mode == POSHOLD || (arming_from_gcs && mode == GUIDED)) {
+    if (mode_has_manual_throttle(mode) ||mode==GUIDED || mode == BASIC_TAKEOFF || mode == LOITER || mode == ALT_HOLD || mode == POSHOLD || (arming_from_gcs && mode == GUIDED)) {
         return true;
     }
     return false;
@@ -360,6 +366,9 @@ void Copter::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
         break;
     case BRAKE:
         port->print_P(PSTR("BRAKE"));
+        break;
+    case BASIC_TAKEOFF:
+        port->print_P(PSTR("BASIC_TAKEOFF"));
         break;
     default:
         port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
