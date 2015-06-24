@@ -920,6 +920,10 @@ static void throttle_loop()
     // check auto_armed status
     update_auto_armed();
 
+    if(sonar_alt_health >= SONAR_ALT_HEALTH_MAX && sonar_alt < 300){
+      current_loc.alt = sonar_alt;
+    }
+
 #if FRAME_CONFIG == HELI_FRAME
     // update rotor speed
     heli_update_rotor_speed_targets();
