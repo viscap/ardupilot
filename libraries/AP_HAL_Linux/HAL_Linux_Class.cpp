@@ -79,7 +79,8 @@ static LinuxRCInput rcinDriver;
   use the PRU based RCOutput driver on ERLE and PXF
  */
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE
-static LinuxRCOutput_PRU rcoutDriver;
+//static LinuxRCOutput_PRU rcoutDriver;
+  static LinuxRCOutput_Navio rcoutDriver;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BBBMINI
 static LinuxRCOutput_AioPRU rcoutDriver;
 /*
