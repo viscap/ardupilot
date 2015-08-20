@@ -47,6 +47,8 @@ static LinuxSPIDeviceManager spiDeviceManager;
 static NavioAnalogIn analogIn;
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_RASPILOT
 static RaspilotAnalogIn analogIn;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLE
+static PXFAnalogIn analogIn;
 #else
 static LinuxAnalogIn analogIn;
 #endif
