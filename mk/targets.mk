@@ -59,7 +59,7 @@ raspilot: TOOLCHAIN = RPI
 raspilot: all
  
 erlebrain2: HAL_BOARD = HAL_BOARD_LINUX
-erlebrain2: TOOLCHAIN = RPI
+erlebrain2: TOOLCHAIN = NATIVE
 erlebrain2: all
 
 bbbmini: HAL_BOARD = HAL_BOARD_LINUX
