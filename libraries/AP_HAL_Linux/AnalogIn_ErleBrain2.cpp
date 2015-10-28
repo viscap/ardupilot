@@ -77,9 +77,7 @@ AP_HAL::AnalogSource* ErleBrain2AnalogIn::channel(int16_t pin)
 void ErleBrain2AnalogIn::init(void* implspecific)
 {
     _adc->init();
-    hal.scheduler->suspend_timer_procs();
     hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&ErleBrain2AnalogIn::_update, void));
-    hal.scheduler->resume_timer_procs();
 }
 
 void ErleBrain2AnalogIn::_update()
