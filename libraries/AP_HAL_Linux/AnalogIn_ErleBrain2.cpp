@@ -93,13 +93,6 @@ void ErleBrain2AnalogIn::_update()
     for (size_t i = 0; i < rc; i++) {
         for (uint8_t j=0; j < rc; j++) {
             ErleBrain2AnalogSource *source = _channels[j];
-
-#if 0
-            if (source != NULL) {
-                fprintf(stderr, "pin: %d id: %d data: %.3f\n", source->_pin, reports[i].id, reports[i].data);
-            }
-#endif
-
             if (source != NULL && reports[i].id == source->_pin) {
                 source->_value = reports[i].data / 1000;
             }
