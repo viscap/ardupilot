@@ -63,7 +63,7 @@ ErleBrain2AnalogIn::ErleBrain2AnalogIn()
 
 AP_HAL::AnalogSource* ErleBrain2AnalogIn::channel(int16_t pin)
 {
-    for (uint8_t j = 0; j < _channels_number; j++) {
+    for (unsigned j = 0; j < _channels_number; j++) {
         if (_channels[j] == NULL) {
             _channels[j] = new ErleBrain2AnalogSource(pin);
             return _channels[j];
