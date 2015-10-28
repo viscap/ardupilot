@@ -2,6 +2,9 @@
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2
 #include "GPIO.h"
+#include "RCInput_ErleBrain2.h"
+#include "Util_RPI.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,14 +21,14 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <assert.h>
-#include "RCInput_ErleBrain2.h"
+
 
 //Parametres
 #define RCIN_ERLEBRAIN2_BUFFER_LENGTH   8
 #define RCIN_ERLEBRAIN2_SAMPLE_FREQ     500
 #define RCIN_ERLEBRAIN2_DMA_CHANNEL     0
 #define RCIN_ERLEBRAIN2_MAX_COUNTER     1300
-#define PPM_INPUT_ERLEBRAIN2            RPI_GPIO_4
+#define PPM_INPUT_ERLEBRAIN2 RPI_GPIO_4
 #define RCIN_ERLEBRAIN2_MAX_SIZE_LINE   50
 
 //Memory Addresses
@@ -76,9 +79,9 @@ extern const AP_HAL::HAL& hal;
 using namespace Linux;
 
 
-volatile uint32_t *LinuxRCInput_ErleBrain2::pcm_reg;
-volatile uint32_t *LinuxRCInput_ErleBrain2::clk_reg;
-volatile uint32_t *LinuxRCInput_ErleBrain2::dma_reg;
+volatile uint32_t *RCInput_ErleBrain2::pcm_reg;
+volatile uint32_t *RCInput_ErleBrain2::clk_reg;
+volatile uint32_t *RCInput_ErleBrain2::dma_reg;
 
 Memory_table::Memory_table()
 {
@@ -111,19 +114,19 @@ Memory_table::Memory_table(uint32_t page_count, int version)
 
     //Magic to determine the physical address for this page:
     offset = mmap(0, _page_count*PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS|MAP_NORESERVE|MAP_LOCKED,-1,0);
-    lseek(file, ((uint32_t)offset)/PAGE_SIZE*8, SEEK_SET);
+    lseek(file, ((uintptr_t)offset)/PAGE_SIZE*8, SEEK_SET);
 
     //Get list of available cache coherent physical addresses
     for (i = 0; i < _page_count; i++) {
         _virt_pages[i]  =  mmap(0, PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS|MAP_NORESERVE|MAP_LOCKED,-1,0);
         ::read(file, &pageInfo, 8); 
-        _phys_pages[i] = (void*)((uint32_t)(pageInfo*PAGE_SIZE) | bus);
+        _phys_pages[i] = (void*)((uintptr_t)(pageInfo*PAGE_SIZE) | bus);
     }
 
     //Map physical addresses to virtual memory
     for (i = 0; i < _page_count; i++) {
         munmap(_virt_pages[i], PAGE_SIZE);
-        _virt_pages[i]  = mmap(_virt_pages[i], PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED|MAP_NORESERVE|MAP_LOCKED, fdMem, ((uint32_t)_phys_pages[i] & (version == 1 ? 0xFFFFFFFF : ~bus)));
+        _virt_pages[i]  = mmap(_virt_pages[i], PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED|MAP_NORESERVE|MAP_LOCKED, fdMem, ((uintptr_t)_phys_pages[i] & (version == 1 ? 0xFFFFFFFF : ~bus)));
         memset(_virt_pages[i], 0xee, PAGE_SIZE);
     }
     close(file);
@@ -152,8 +155,8 @@ void* Memory_table::get_virt_addr(const uint32_t phys_addr) const
     // FIXME: if the address room  in _phys_pages is not fragmented one may avoid a complete loop ..
     uint32_t i = 0;
     for (; i < _page_count; i++) {
-        if ((uint32_t) _phys_pages[i] == (((uint32_t) phys_addr) & 0xFFFFF000)) {
-            return (void*) ((uint32_t) _virt_pages[i] + (phys_addr & 0xFFF));
+        if ((uintptr_t) _phys_pages[i] == (((uintptr_t) phys_addr) & 0xFFFFF000)) {
+            return (void*) ((uintptr_t) _virt_pages[i] + (phys_addr & 0xFFF));
         }
     }
     return NULL;
@@ -165,7 +168,7 @@ uint32_t Memory_table::get_offset(void ** const pages, const uint32_t addr) cons
 {
     uint32_t i = 0;
     for (; i < _page_count; i++) {
-        if ((uint32_t) pages[i] == (addr & 0xFFFFF000) ) {
+        if ((uintptr_t) pages[i] == (addr & 0xFFFFF000) ) {
             return (i*PAGE_SIZE + (addr & 0xFFF));
         }
     }
@@ -188,39 +191,8 @@ uint32_t Memory_table::get_page_count() const
     return _page_count;
 }
 
-// More memory mapping
-int get_raspberry_pi_version()
-{
-    char buffer[RCIN_ERLEBRAIN2_MAX_SIZE_LINE];
-    const char* hardware_description_entry = "Hardware";
-    const char* v1 = "BCM2708";
-    const char* v2 = "BCM2709";
-    char* flag;
-    FILE* fd;
-
-    fd = fopen("/proc/cpuinfo", "r");
-
-    while (fgets(buffer, RCIN_ERLEBRAIN2_MAX_SIZE_LINE, fd) != NULL) {
-        flag = strstr(buffer, hardware_description_entry);
-
-        if (flag != NULL) {
-            if (strstr(buffer, v2) != NULL) {
-                printf("Raspberry Pi 2 with BCM2709!\n");
-                fclose(fd);
-                return 2;
-            } 
-            else if (strstr(buffer, v1) != NULL) {
-                printf("Raspberry Pi 1 with BCM2708!\n");
-                fclose(fd);
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
 //Physical addresses of peripheral depends on Raspberry Pi's version
-void LinuxRCInput_ErleBrain2::set_physical_addresses(int version)
+void RCInput_ErleBrain2::set_physical_addresses(int version)
 {
     if (version == 1) {
         dma_base = RCIN_ERLEBRAIN2_RPI1_DMA_BASE;
@@ -235,7 +207,7 @@ void LinuxRCInput_ErleBrain2::set_physical_addresses(int version)
 }
 
 //Map peripheral to virtual memory
-void* LinuxRCInput_ErleBrain2::map_peripheral(uint32_t base, uint32_t len)
+void* RCInput_ErleBrain2::map_peripheral(uint32_t base, uint32_t len)
 {
     int fd = open("/dev/mem", O_RDWR);
     void * vaddr;
@@ -254,7 +226,7 @@ void* LinuxRCInput_ErleBrain2::map_peripheral(uint32_t base, uint32_t len)
 }
 
 //Method to init DMA control block
-void LinuxRCInput_ErleBrain2::init_dma_cb(dma_cb_t** cbp, uint32_t mode, uint32_t source, uint32_t dest, uint32_t length, uint32_t stride, uint32_t next_cb)
+void RCInput_ErleBrain2::init_dma_cb(dma_cb_t** cbp, uint32_t mode, uint32_t source, uint32_t dest, uint32_t length, uint32_t stride, uint32_t next_cb)
 {
     (*cbp)->info = mode;
     (*cbp)->src = source;
@@ -264,13 +236,13 @@ void LinuxRCInput_ErleBrain2::init_dma_cb(dma_cb_t** cbp, uint32_t mode, uint32_
     (*cbp)->stride = stride;
 }
 
-void LinuxRCInput_ErleBrain2::stop_dma()
+void RCInput_ErleBrain2::stop_dma()
 {
     dma_reg[RCIN_ERLEBRAIN2_DMA_CS | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = 0;
 }
 
 /* We need to be sure that the DMA is stopped upon termination */
-void LinuxRCInput_ErleBrain2::termination_handler(int signum)
+void RCInput_ErleBrain2::termination_handler(int signum)
 {
     stop_dma();
     hal.scheduler->panic("Interrupted");
@@ -278,7 +250,7 @@ void LinuxRCInput_ErleBrain2::termination_handler(int signum)
 
 
 //This function is used to init DMA control blocks (setting sampling GPIO register, destination adresses, synchronization)
-void LinuxRCInput_ErleBrain2::init_ctrl_data()
+void RCInput_ErleBrain2::init_ctrl_data()
 {
     uint32_t phys_fifo_addr;
     uint32_t dest = 0;
@@ -305,33 +277,51 @@ void LinuxRCInput_ErleBrain2::init_ctrl_data()
 
   uint32_t i = 0;
   for (i = 0; i < 56 * 128 * RCIN_ERLEBRAIN2_BUFFER_LENGTH; i++) // 8 * 56 * 128 == 57344
-	{
+    {
       //Transfer timer every 56th sample
       if(i % 56 == 0) {
           cbp_curr = (dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp);
 
-          init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP | RCIN_ERLEBRAIN2_DMA_DEST_INC | RCIN_ERLEBRAIN2_DMA_SRC_INC, RCIN_ERLEBRAIN2_TIMER_BASE, (uint32_t) circle_buffer->get_page(circle_buffer->_phys_pages, dest), 8, 0, (uint32_t) con_blocks->get_page(con_blocks->_phys_pages, cbp + sizeof(dma_cb_t)));
+          init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP | RCIN_ERLEBRAIN2_DMA_DEST_INC | RCIN_ERLEBRAIN2_DMA_SRC_INC, RCIN_ERLEBRAIN2_TIMER_BASE, 
+              (uintptr_t) circle_buffer->get_page(circle_buffer->_phys_pages, dest), 
+              8, 
+              0, 
+              (uintptr_t) con_blocks->get_page(con_blocks->_phys_pages, 
+              cbp + sizeof(dma_cb_t) ) );
+      
           dest += 8;
           cbp += sizeof(dma_cb_t);
       } 
 
-	    // Transfer GPIO (1 byte)
-	    cbp_curr = (dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp);
-	    init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP, RCIN_ERLEBRAIN2_GPIO_LEV0_ADDR, (uint32_t) circle_buffer->get_page(circle_buffer->_phys_pages, dest), 1, 0, (uint32_t) con_blocks->get_page(con_blocks->_phys_pages, cbp + sizeof(dma_cb_t)));
-	    dest += 1;
-	    cbp += sizeof(dma_cb_t);	  
+        // Transfer GPIO (1 byte)
+        cbp_curr = (dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp);
+        init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP, RCIN_ERLEBRAIN2_GPIO_LEV0_ADDR, 
+            (uintptr_t) circle_buffer->get_page(circle_buffer->_phys_pages, dest), 
+            1, 
+            0, 
+            (uintptr_t) con_blocks->get_page(con_blocks->_phys_pages, 
+            cbp + sizeof(dma_cb_t) ) );
+        
+        dest += 1;
+        cbp += sizeof(dma_cb_t);      
 
-	    // Delay (for setting sampling frequency)
-	    /* DMA is waiting data request signal (DREQ) from PCM. PCM is set for 1 MhZ freqency, so,
-	       each sample of GPIO is limited by writing to PCA queue.
-	    */
-	    cbp_curr = (dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp);
-	    init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP | RCIN_ERLEBRAIN2_DMA_D_DREQ | RCIN_ERLEBRAIN2_DMA_PER_MAP(2), RCIN_ERLEBRAIN2_TIMER_BASE, phys_fifo_addr, 4, 0, (uint32_t)  con_blocks->get_page(con_blocks->_phys_pages, cbp + sizeof(dma_cb_t)));
-	    cbp += sizeof(dma_cb_t);
-	}
+        // Delay (for setting sampling frequency)
+        /* DMA is waiting data request signal (DREQ) from PCM. PCM is set for 1 MhZ freqency, so,
+           each sample of GPIO is limited by writing to PCA queue.
+        */
+        cbp_curr = (dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp);
+        init_dma_cb(&cbp_curr, RCIN_ERLEBRAIN2_DMA_NO_WIDE_BURSTS | RCIN_ERLEBRAIN2_DMA_WAIT_RESP | RCIN_ERLEBRAIN2_DMA_D_DREQ | RCIN_ERLEBRAIN2_DMA_PER_MAP(2), 
+            RCIN_ERLEBRAIN2_TIMER_BASE, phys_fifo_addr, 
+            4, 
+            0, 
+            (uintptr_t)con_blocks->get_page(con_blocks->_phys_pages, 
+            cbp + sizeof(dma_cb_t) ) );
+        
+        cbp += sizeof(dma_cb_t);
+    }
     //Make last control block point to the first (to make circle) 
     cbp -= sizeof(dma_cb_t);
-    ((dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp))->next = (uint32_t) con_blocks->get_page(con_blocks->_phys_pages, 0);
+    ((dma_cb_t*)con_blocks->get_page(con_blocks->_virt_pages, cbp))->next = (uintptr_t) con_blocks->get_page(con_blocks->_phys_pages, 0);
 }
 
 
@@ -339,7 +329,7 @@ void LinuxRCInput_ErleBrain2::init_ctrl_data()
   See BCM2835 documentation:
   http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 */  
-void LinuxRCInput_ErleBrain2::init_PCM()
+void RCInput_ErleBrain2::init_PCM()
 {
     pcm_reg[RCIN_ERLEBRAIN2_PCM_CS_A] = 1;                                          // Disable Rx+Tx, Enable PCM block
     hal.scheduler->delay_microseconds(100);
@@ -367,31 +357,31 @@ void LinuxRCInput_ErleBrain2::init_PCM()
   See BCM2835 documentation:
   http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
 */  
-void LinuxRCInput_ErleBrain2::init_DMA()
+void RCInput_ErleBrain2::init_DMA()
 {
     dma_reg[RCIN_ERLEBRAIN2_DMA_CS | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = RCIN_ERLEBRAIN2_DMA_RESET;                 //Reset DMA
     hal.scheduler->delay_microseconds(100);
     dma_reg[RCIN_ERLEBRAIN2_DMA_CS | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = RCIN_ERLEBRAIN2_DMA_INT | RCIN_ERLEBRAIN2_DMA_END;
-    dma_reg[RCIN_ERLEBRAIN2_DMA_CONBLK_AD | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = reinterpret_cast<uint32_t>(con_blocks->get_page(con_blocks->_phys_pages, 0));//Set first control block address
+    dma_reg[RCIN_ERLEBRAIN2_DMA_CONBLK_AD | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = reinterpret_cast<uintptr_t>(con_blocks->get_page(con_blocks->_phys_pages, 0));//Set first control block address
     dma_reg[RCIN_ERLEBRAIN2_DMA_DEBUG | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = 7;                      // clear debug error flags
     dma_reg[RCIN_ERLEBRAIN2_DMA_CS | RCIN_ERLEBRAIN2_DMA_CHANNEL << 8] = 0x10880001;                // go, mid priority, wait for outstanding writes    
 }
 
 
 //We must stop DMA when the process is killed
-void LinuxRCInput_ErleBrain2::set_sigaction()
+void RCInput_ErleBrain2::set_sigaction()
 {
     for (int i = 0; i < 64; i++) { 
         //catch all signals (like ctrl+c, ctrl+z, ...) to ensure DMA is disabled
         struct sigaction sa;
         memset(&sa, 0, sizeof(sa));
-        sa.sa_handler = LinuxRCInput_ErleBrain2::termination_handler;
+        sa.sa_handler = RCInput_ErleBrain2::termination_handler;
         sigaction(i, &sa, NULL);
     }
 }
 
 //Initial setup of variables
-LinuxRCInput_ErleBrain2::LinuxRCInput_ErleBrain2():
+RCInput_ErleBrain2::RCInput_ErleBrain2():
     prev_tick(0),
     delta_time(0),
     curr_tick_inc(1000/RCIN_ERLEBRAIN2_SAMPLE_FREQ),
@@ -402,7 +392,7 @@ LinuxRCInput_ErleBrain2::LinuxRCInput_ErleBrain2():
     last_signal(228),
     state(RCIN_ERLEBRAIN2_INITIAL_STATE)
 {
-    int version = get_raspberry_pi_version();
+    int version = UtilRPI::from(hal.util)->get_rpi_version();
     set_physical_addresses(version);
 
     //Init memory for buffer and for DMA control blocks. See comments in "init_ctrl_data()" to understand values "2" and "113"
@@ -410,26 +400,26 @@ LinuxRCInput_ErleBrain2::LinuxRCInput_ErleBrain2():
     con_blocks = new Memory_table(RCIN_ERLEBRAIN2_BUFFER_LENGTH * 113, version);
 }
 
-LinuxRCInput_ErleBrain2::~LinuxRCInput_ErleBrain2()
+RCInput_ErleBrain2::~RCInput_ErleBrain2()
 {
     delete circle_buffer;
     delete con_blocks;
 }
 
-void LinuxRCInput_ErleBrain2::deinit()
+void RCInput_ErleBrain2::deinit()
 {
     stop_dma();
 }
 
 //Initializing necessary registers
-void LinuxRCInput_ErleBrain2::init_registers()
+void RCInput_ErleBrain2::init_registers()
 {
     dma_reg = (uint32_t*)map_peripheral(dma_base, RCIN_ERLEBRAIN2_DMA_LEN);    
     pcm_reg = (uint32_t*)map_peripheral(pcm_base, RCIN_ERLEBRAIN2_PCM_LEN);
     clk_reg = (uint32_t*)map_peripheral(clk_base, RCIN_ERLEBRAIN2_CLK_LEN);
 }
 
-void LinuxRCInput_ErleBrain2::init(void*)
+void RCInput_ErleBrain2::init(void*)
 {
     
     init_registers();
@@ -458,7 +448,7 @@ void LinuxRCInput_ErleBrain2::init(void*)
 
 
 //Processing signal
-void LinuxRCInput_ErleBrain2::_timer_tick()
+void RCInput_ErleBrain2::_timer_tick()
 {
     int j;
     void* x;
@@ -472,7 +462,7 @@ void LinuxRCInput_ErleBrain2::_timer_tick()
     }
     
     //How many bytes have DMA transfered (and we can process)?
-    counter = circle_buffer->bytes_available(curr_pointer, circle_buffer->get_offset(circle_buffer->_virt_pages, (uint32_t)x));
+    counter = circle_buffer->bytes_available(curr_pointer, circle_buffer->get_offset(circle_buffer->_virt_pages, (uintptr_t)x));
     //We can't stay in method for a long time, because it may lead to delays
     if (counter > RCIN_ERLEBRAIN2_MAX_COUNTER) {
         counter = RCIN_ERLEBRAIN2_MAX_COUNTER;

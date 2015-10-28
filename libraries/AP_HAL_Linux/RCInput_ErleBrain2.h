@@ -24,9 +24,9 @@
 
 
 enum state_t{
-				RCIN_ERLEBRAIN2_INITIAL_STATE = -1,
-				RCIN_ERLEBRAIN2_ZERO_STATE = 0,
-				RCIN_ERLEBRAIN2_ONE_STATE = 1
+    RCIN_ERLEBRAIN2_INITIAL_STATE = -1,
+    RCIN_ERLEBRAIN2_ZERO_STATE = 0,
+    RCIN_ERLEBRAIN2_ONE_STATE = 1
 };
 
 
@@ -45,8 +45,8 @@ typedef struct {
 } dma_cb_t;
 
 class Memory_table {
-// Allow LinuxRCInput_ErleBrain2 access to private members of Memory_table
-friend class Linux::LinuxRCInput_ErleBrain2;
+// Allow RCInput_ErleBrain2 access to private members of Memory_table
+friend class Linux::RCInput_ErleBrain2;
   
 private:
     void** _virt_pages;
@@ -74,13 +74,13 @@ public:
 };
 
 
-class Linux::LinuxRCInput_ErleBrain2 : public Linux::LinuxRCInput 
+class Linux::RCInput_ErleBrain2 : public Linux::RCInput
 { 
 public:
     void init(void*);
     void _timer_tick(void);
-    LinuxRCInput_ErleBrain2();
-    ~LinuxRCInput_ErleBrain2();
+    RCInput_ErleBrain2();
+    ~RCInput_ErleBrain2();
     
 private:
 
