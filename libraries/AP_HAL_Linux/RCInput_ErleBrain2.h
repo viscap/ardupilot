@@ -24,9 +24,9 @@
 
 
 enum state_t{
-    RCIN_ERLEBRAIN2_INITIAL_STATE = -1,
-    RCIN_ERLEBRAIN2_ZERO_STATE = 0,
-    RCIN_ERLEBRAIN2_ONE_STATE = 1
+                RCIN_ERLEBRAIN2_INITIAL_STATE = -1,
+                RCIN_ERLEBRAIN2_ZERO_STATE = 0,
+                RCIN_ERLEBRAIN2_ONE_STATE = 1
 };
 
 
@@ -74,7 +74,7 @@ public:
 };
 
 
-class Linux::RCInput_ErleBrain2 : public Linux::RCInput
+class Linux::RCInput_ErleBrain2 : public Linux::RCInput 
 { 
 public:
     void init(void*);
