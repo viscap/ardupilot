@@ -57,6 +57,10 @@ erlebrain2: HAL_BOARD = HAL_BOARD_LINUX
 erlebrain2: TOOLCHAIN = RPI
 erlebrain2: all
 
+erlebrain2: HAL_BOARD = HAL_BOARD_LINUX
+erlebrain2: TOOLCHAIN = MINI
+erlebrain2: all
+
 bbbmini: HAL_BOARD = HAL_BOARD_LINUX
 bbbmini: TOOLCHAIN = BBONE
 bbbmini: all
