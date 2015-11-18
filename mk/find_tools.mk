@@ -64,6 +64,15 @@ RPI_LD      :=  arm-linux-gnueabihf-g++
 RPI_GDB     :=  arm-linux-gnueabihf-gdb
 RPI_OBJCOPY :=  arm-linux-gnueabihf-obj
 
+# toolchains for Mini
+MINI_CXX     :=  arm-linux-gnueabihf-g++
+MINI_CC      :=  arm-linux-gnueabihf-gcc
+MINI_AS      :=  arm-linux-gnueabihf-gcc
+MINI_AR      :=  arm-linux-gnueabihf-ar
+MINI_LD      :=  arm-linux-gnueabihf-g++
+MINI_GDB     :=  arm-linux-gnueabihf-gdb
+MINI_OBJCOPY :=  arm-linux-gnueabihf-obj
+
 # toolchains for zynq
 ZYNQ_CXX     :=  arm-xilinx-linux-gnueabi-g++
 ZYNQ_CC      :=  arm-xilinx-linux-gnueabi-gcc
