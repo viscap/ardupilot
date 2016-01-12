@@ -469,6 +469,10 @@ void AP_Compass_HMC5843::read()
     if (_product_id == AP_COMPASS_TYPE_HMC5883L) {
         field.rotate(ROTATION_YAW_90);
     }
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2
+    field.rotate(ROTATION_ROLL_180);
+#endif
+
 
     publish_filtered_field(field, _compass_instance);
     _retry_time = 0;
