@@ -433,6 +433,8 @@ void Compass::_detect_backends(void)
     AP_Compass_Backend *backend = AP_Compass_HMC5843::detect_i2c(*this, hal.i2c);
     if (backend) {
         _add_backend(backend);
+        hal.console->println(backend);
+
     } else {
         _add_backend(AP_Compass_AK8963::detect_mpu9250(*this, 0));
     }
@@ -441,11 +443,14 @@ void Compass::_detect_backends(void)
       CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_BEBOP && \
       CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_QFLIGHT && \
       CONFIG_HAL_BOARD_SUBTYPE != HAL_BOARD_SUBTYPE_LINUX_MINLURE
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2
-    _add_backend(AP_Compass_HMC5843::detect_i2c(*this, hal.i2c));
-#else
-    _add_backend(AP_Compass_HMC5843::detect_i2c(*this, hal.i2c));
-    _add_backend(AP_Compass_AK8963::detect_mpu9250(*this, 0));
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXF || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2 || \
+      CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXFMINI
+    AP_Compass_Backend *backend = AP_Compass_HMC5843::detect_i2c(*this, hal.i2c);
+    if (backend) {
+        _add_backend(backend);
+    } else {
+        _add_backend(AP_Compass_AK8963::detect_mpu9250(*this, 0));
+    }
 #endif
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_HIL
     _add_backend(AP_Compass_HIL::detect(*this));
