@@ -190,7 +190,7 @@ fi
 trap kill_tasks SIGINT
 
 # setup ports for this instance
-MAVLINK_PORT="tcp:127.0.0.1:"$((5760+10*$INSTANCE))
+MAVLINK_PORT="udp:127.0.0.1:"$((5760+10*$INSTANCE))
 SIMIN_PORT="127.0.0.1:"$((5502+10*$INSTANCE))
 SIMOUT_PORT="127.0.0.1:"$((5501+10*$INSTANCE))
 FG_PORT="127.0.0.1:"$((5503+10*$INSTANCE))

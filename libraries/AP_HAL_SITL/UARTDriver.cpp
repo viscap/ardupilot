@@ -38,6 +38,7 @@
 
 #include "UARTDriver.h"
 #include "SITL_State.h"
+#include "SITL_UDPDevice.h"
 
 using namespace HALSITL;
 
@@ -53,9 +54,13 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
     if (rxSpace != 0) {
         _rxSpace = rxSpace;
     }
+
+    fprintf(stdout,"----------------%d---------------- console %d\n", _portNumber, _console);
+
     switch (_portNumber) {
     case 0:
-        _tcp_start_connection(true);
+        _udp_start_connection();
+        //_tcp_start_connection(true);
         break;
 
     case 1:
@@ -65,13 +70,26 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
         break;
 
     case 2:
+        _udp_start_connection();
+        if (_sitlState->get_client_address() != NULL) {
+    fprintf(stdout,"SITLUARTDriver %d get_client_address\n", _portNumber);
+    fflush(stdout);
+
+//            _tcp_start_client(_sitlState->get_client_address());
+        } else {
+    fprintf(stdout,"SITLUARTDriver %d no get_client_address\n", _portNumber);
+    fflush(stdout);
+//            _tcp_start_connection(false);
+        }
+
+    /*
         if (_sitlState->get_client_address() != NULL) {
             _tcp_start_client(_sitlState->get_client_address());
         } else {
             _tcp_start_connection(false);
         }
         break;
-
+*/
     case 4:
         /* gps2 */
         _connected = true;
@@ -79,23 +97,31 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
         break;
 
     default:
-        _tcp_start_connection(false);
+        _udp_start_connection();
+        //_tcp_start_connection(false);
         break;
     }
 }
 
 void SITLUARTDriver::end()
 {
+    fprintf(stdout,"SITLUARTDriver %d end\n", _portNumber);
+    fflush(stdout);
 }
 
 int16_t SITLUARTDriver::available(void)
 {
+//    fprintf(stdout,"SITLUARTDriver %d available\n", _portNumber);
+//    fflush(stdout);
+
     _check_connection();
 
     if (!_connected) {
         return 0;
     }
-
+    if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+        return 1;
+    }
     if (_select_check(_fd)) {
 #ifdef FIONREAD
         // use FIONREAD to get exact value if possible
@@ -146,12 +172,26 @@ int16_t SITLUARTDriver::read(void)
         return ::read(0, &c, 1);
     }
 
+    if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+        uint8_t buffer[1];
+        int read_bu = _device->read(buffer, 1);
+        if(read_bu>0){
+            fprintf(stdout, "SITLUARTDriver::read %d %d\n",_portNumber, read_bu);
+            fflush(stdout);
+        }
+        //return read_bu;//_device->read(&buffer, 1);
+//        if (read_bu == 1) {
+            return (uint8_t)buffer[0];
+//        }
+        return -1;
+    }
+
     int n = recv(_fd, &c, 1, MSG_DONTWAIT);
     if (n <= 0) {
         // the socket has reached EOF
         close(_fd);
         _connected = false;
-        fprintf(stdout, "Closed connection on serial port %u\n", _portNumber);
+        fprintf(stdout, "Closed connection on serial port %d\n", _portNumber);
         fflush(stdout);
         return -1;
     }
@@ -176,18 +216,68 @@ size_t SITLUARTDriver::write(uint8_t c)
         flags |= MSG_DONTWAIT;
     }
     if (_console) {
-        return ::write(_fd, &c, 1);
+       if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+           size_t size = 1;
+           int bytes_write = _device->write(&c, size);
+           fprintf(stdout,"SITLUARTDriver %d write %d\n", _portNumber, bytes_write);
+           fflush(stdout);
+           return bytes_write;
+       }
+       return ::write(_fd, &c, 1);
+    }
+    if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+       size_t size = 1;
+       int bytes_write = _device->write(&c, size);
+       fprintf(stdout,"SITLUARTDriver %d write %d\n", _portNumber, bytes_write);
+       fflush(stdout);
+       return bytes_write;
     }
     return send(_fd, &c, 1, flags);
 }
 
 size_t SITLUARTDriver::write(const uint8_t *buffer, size_t size)
 {
+    if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+       int bytes_write = _device->write(buffer, size);
+       fprintf(stdout,"SITLUARTDriver %d write2 %d of %d\n", _portNumber, bytes_write, size);
+       fflush(stdout);
+       return bytes_write;
+    }
     size_t n = 0;
     while (size--) {
         n += write(*buffer++);
     }
     return n;
+}
+
+/*
+  start a UDP connection for the serial port
+ */
+void SITLUARTDriver::_udp_start_connection(void)
+{
+
+    if(_portNumber==0)
+       _device = new SITLUDPDevice("127.0.0.1", 5760+_portNumber, false);
+    if(_portNumber==2)
+       _device = new SITLUDPDevice("127.0.0.1", 5760, false);
+    if(_portNumber==3)
+       _device = new SITLUDPDevice("127.0.0.1", 5760, false);
+   
+   _connected = _device->open();
+   _device->set_blocking(false);
+   fprintf(stdout,"SITLUARTDriver _udp_start_connection %d connected %d\n", _portNumber, _connected);
+   fflush(stdout);
+
+/*
+    //bool bcast = (_flag && strcmp(_flag, "bcast") == 0);
+    _device = new SITLUDPDevice("127.0.0.1", _portNumber, true);
+    //(_ip, _base_port, bcast);
+    _connected = _device->open();
+    _device->set_blocking(false);
+
+    /* try to write on MAVLink packet boundaries if possible */
+//    _packetise = true;
+
 }
 
 /*
@@ -336,10 +426,21 @@ void SITLUARTDriver::_tcp_start_client(const char *address)
  */
 void SITLUARTDriver::_check_connection(void)
 {
+    if(_portNumber==0 || _portNumber==2 || _portNumber==3){
+//        fprintf(stdout, "SITLUARTDriver::_check_connection %d \n",_portNumber);
+//        fflush(stdout);
+        if (_connected) {
+            // we only want 1 connection at a time
+            return;
+        }
+        return;
+    }
+
     if (_connected) {
         // we only want 1 connection at a time
         return;
     }
+
     if (_select_check(_listen_fd)) {
         _fd = accept(_listen_fd, NULL, NULL);
         if (_fd != -1) {
@@ -357,6 +458,8 @@ void SITLUARTDriver::_check_connection(void)
  */
 bool SITLUARTDriver::_select_check(int fd)
 {
+//    fprintf(stdout, "SITLUARTDriver::_select_check %d \n",_portNumber);
+//    fflush(stdout);
     fd_set fds;
     struct timeval tv;
 

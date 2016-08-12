@@ -9,6 +9,8 @@
 #include <stdarg.h>
 #include "AP_HAL_SITL_Namespace.h"
 
+#include "SerialDevice.h"
+
 class HALSITL::SITLUARTDriver : public AP_HAL::UARTDriver {
 public:
     friend class HALSITL::SITL_State;
@@ -68,6 +70,8 @@ private:
     // IPv4 address of target for uartC
     const char *_tcp_client_addr;
 
+    SerialDevice *_device = nullptr;
+    void _udp_start_connection(void);
     void _tcp_start_connection(bool wait_for_connection);
     void _tcp_start_client(const char *address);
     void _check_connection(void);

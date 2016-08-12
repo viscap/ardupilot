@@ -1,0 +1,84 @@
+#include <AP_HAL/AP_HAL.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
+#include "SITL_UDPDevice.h"
+
+SITLUDPDevice::SITLUDPDevice(const char *ip, uint16_t port, bool bcast):
+    _ip(ip),
+    _port(port),
+    _bcast(bcast)
+{
+            printf("SITLUDPDevice SITLUDPDevice\n");
+
+}
+
+SITLUDPDevice::~SITLUDPDevice()
+{
+                printf("SITLUDPDevice ~SITLUDPDevice\n");
+
+}
+
+ssize_t SITLUDPDevice::write(const uint8_t *buf, uint16_t n)
+{
+//                    printf("SITLUDPDevice write\n");
+
+    if (!socket.pollout(0)) {
+        return -1;
+    }
+    if (_connected) {
+        return socket.send(buf, n);
+    }
+    return socket.sendto(buf, n, _ip, _port);
+}
+
+ssize_t SITLUDPDevice::read(uint8_t *buf, uint16_t n)
+{
+//                    printf("SITLUDPDevice read\n");
+    ssize_t ret = socket.recv(buf, n, 0);
+    //printf("SITLUDPDevice read ret %d\n", (int)ret);
+    //fflush(stdout);
+    if (!_connected && ret > 0) {
+        const char *ip;
+        uint16_t port;
+        socket.last_recv_address(ip, port);
+        _connected = socket.connect(ip, port);
+    }
+    return ret;
+}
+
+bool SITLUDPDevice::open()
+{
+                    printf("SITLUDPDevice open\n");
+    if (_bcast) {
+        // open now, then connect on first received packet
+        socket.set_broadcast();
+        return true;
+    }
+    _connected = socket.connect(_ip, _port);
+    return _connected;
+}
+
+bool SITLUDPDevice::close()
+{
+                     printf("SITLUDPDevice close\n");
+   return true;
+}
+
+void SITLUDPDevice::set_blocking(bool blocking)
+{
+                    printf("SITLUDPDevice set_blocking\n");
+    socket.set_blocking(blocking);
+}
+
+void SITLUDPDevice::set_speed(uint32_t speed)
+{
+                    printf("SITLUDPDevice set_speed\n");
+
+}
+
+#endif
