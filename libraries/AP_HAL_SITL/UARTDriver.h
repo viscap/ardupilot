@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#include <vector>
 #include "AP_HAL_SITL_Namespace.h"
 
 #include "SerialDevice.h"
@@ -91,6 +92,8 @@ private:
     static const uint16_t _max_buffer_size = 512;
 
     SITL_State *_sitlState;
+
+    std::vector<uint8_t> read_bytes;
 
 };
 

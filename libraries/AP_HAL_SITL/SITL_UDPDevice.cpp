@@ -13,13 +13,14 @@ SITLUDPDevice::SITLUDPDevice(const char *ip, uint16_t port, bool bcast):
     _port(port),
     _bcast(bcast)
 {
-            printf("SITLUDPDevice SITLUDPDevice\n");
-
+    printf("SITLUDPDevice SITLUDPDevice\n");
 }
 
 SITLUDPDevice::~SITLUDPDevice()
 {
                 printf("SITLUDPDevice ~SITLUDPDevice\n");
+
+    // _initialised = false;
 
 }
 

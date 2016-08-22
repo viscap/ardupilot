@@ -867,8 +867,8 @@ GCS_MAVLINK::update(run_cli_fn run_cli)
 
     // process received bytes
     uint16_t nbytes = comm_get_available(chan);
-    fprintf(stdout, "lol %d\n", (int)nbytes);
-    fflush(stdout);
+    //fprintf(stdout, "lol %d\n", (int)nbytes);
+    //fflush(stdout);
     for (uint16_t i=0; i<nbytes; i++)
     {
         uint8_t c = comm_receive_ch(chan);

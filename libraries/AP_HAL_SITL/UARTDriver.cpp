@@ -71,6 +71,7 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
 
     case 2:
         _udp_start_connection();
+
         if (_sitlState->get_client_address() != NULL) {
     fprintf(stdout,"SITLUARTDriver %d get_client_address\n", _portNumber);
     fflush(stdout);
@@ -120,7 +121,10 @@ int16_t SITLUARTDriver::available(void)
         return 0;
     }
     if(_portNumber==0 || _portNumber==2 || _portNumber==3){
-        return 1;
+        if(read_bytes.size()==0)
+            return 1;
+        else
+            return read_bytes.size();
     }
     if (_select_check(_fd)) {
 #ifdef FIONREAD
@@ -156,11 +160,11 @@ int16_t SITLUARTDriver::txspace(void)
 int16_t SITLUARTDriver::read(void)
 {
     char c;
-
+/*
     if (available() <= 0) {
         return -1;
     }
-
+*/
     if (_portNumber == 1 || _portNumber == 4) {
         if (_sitlState->gps_read(_fd, &c, 1) == 1) {
             return (uint8_t)c;
@@ -171,17 +175,26 @@ int16_t SITLUARTDriver::read(void)
     if (_console) {
         return ::read(0, &c, 1);
     }
-
+ 
     if(_portNumber==0 || _portNumber==2 || _portNumber==3){
-        uint8_t buffer[1];
-        int read_bu = _device->read(buffer, 1);
+        uint8_t buffer[100];
+        int read_bu = _device->read(buffer, 100);
+        //fprintf(stdout, "readddd: read_bu: %d\n", read_bu);
+        //fflush(stdout);
+        for(int i=0; i < read_bu; i++){
+            read_bytes.push_back(buffer[i]);
+        }
         if(read_bu>0){
-            fprintf(stdout, "SITLUARTDriver::read %d %d\n",_portNumber, read_bu);
+            fprintf(stdout, "SITLUARTDriver::read  %d available_bytes: %d\n",_portNumber, read_bytes.size());
             fflush(stdout);
         }
         //return read_bu;//_device->read(&buffer, 1);
 //        if (read_bu == 1) {
-            return (uint8_t)buffer[0];
+        if(read_bytes.size()>0){
+            uint8_t data = read_bytes.front();
+            read_bytes.erase(read_bytes.begin());
+            return data;
+        }
 //        }
         return -1;
     }
