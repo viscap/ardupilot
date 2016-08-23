@@ -13,21 +13,14 @@ SITLUDPDevice::SITLUDPDevice(const char *ip, uint16_t port, bool bcast):
     _port(port),
     _bcast(bcast)
 {
-    printf("SITLUDPDevice SITLUDPDevice\n");
 }
 
 SITLUDPDevice::~SITLUDPDevice()
 {
-                printf("SITLUDPDevice ~SITLUDPDevice\n");
-
-    // _initialised = false;
-
 }
 
 ssize_t SITLUDPDevice::write(const uint8_t *buf, uint16_t n)
 {
-//                    printf("SITLUDPDevice write\n");
-
     if (!socket.pollout(0)) {
         return -1;
     }
@@ -39,10 +32,7 @@ ssize_t SITLUDPDevice::write(const uint8_t *buf, uint16_t n)
 
 ssize_t SITLUDPDevice::read(uint8_t *buf, uint16_t n)
 {
-//                    printf("SITLUDPDevice read\n");
     ssize_t ret = socket.recv(buf, n, 0);
-    //printf("SITLUDPDevice read ret %d\n", (int)ret);
-    //fflush(stdout);
     if (!_connected && ret > 0) {
         const char *ip;
         uint16_t port;
@@ -54,7 +44,6 @@ ssize_t SITLUDPDevice::read(uint8_t *buf, uint16_t n)
 
 bool SITLUDPDevice::open()
 {
-                    printf("SITLUDPDevice open\n");
     if (_bcast) {
         // open now, then connect on first received packet
         socket.set_broadcast();
@@ -66,20 +55,16 @@ bool SITLUDPDevice::open()
 
 bool SITLUDPDevice::close()
 {
-                     printf("SITLUDPDevice close\n");
    return true;
 }
 
 void SITLUDPDevice::set_blocking(bool blocking)
 {
-                    printf("SITLUDPDevice set_blocking\n");
     socket.set_blocking(blocking);
 }
 
 void SITLUDPDevice::set_speed(uint32_t speed)
 {
-                    printf("SITLUDPDevice set_speed\n");
-
 }
 
 #endif

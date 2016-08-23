@@ -55,8 +55,6 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
         _rxSpace = rxSpace;
     }
 
-    fprintf(stdout,"----------------%d---------------- console %d\n", _portNumber, _console);
-
     switch (_portNumber) {
     case 0:
         _udp_start_connection();
@@ -71,18 +69,6 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
 
     case 2:
         _udp_start_connection();
-
-        if (_sitlState->get_client_address() != NULL) {
-    fprintf(stdout,"SITLUARTDriver %d get_client_address\n", _portNumber);
-    fflush(stdout);
-
-//            _tcp_start_client(_sitlState->get_client_address());
-        } else {
-    fprintf(stdout,"SITLUARTDriver %d no get_client_address\n", _portNumber);
-    fflush(stdout);
-//            _tcp_start_connection(false);
-        }
-
     /*
         if (_sitlState->get_client_address() != NULL) {
             _tcp_start_client(_sitlState->get_client_address());
@@ -106,15 +92,11 @@ void SITLUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace)
 
 void SITLUARTDriver::end()
 {
-    fprintf(stdout,"SITLUARTDriver %d end\n", _portNumber);
-    fflush(stdout);
+
 }
 
 int16_t SITLUARTDriver::available(void)
 {
-//    fprintf(stdout,"SITLUARTDriver %d available\n", _portNumber);
-//    fflush(stdout);
-
     _check_connection();
 
     if (!_connected) {
@@ -184,18 +166,12 @@ int16_t SITLUARTDriver::read(void)
         for(int i=0; i < read_bu; i++){
             read_bytes.push_back(buffer[i]);
         }
-        if(read_bu>0){
-            fprintf(stdout, "SITLUARTDriver::read  %d available_bytes: %d\n",_portNumber, read_bytes.size());
-            fflush(stdout);
-        }
-        //return read_bu;//_device->read(&buffer, 1);
-//        if (read_bu == 1) {
+
         if(read_bytes.size()>0){
             uint8_t data = read_bytes.front();
             read_bytes.erase(read_bytes.begin());
             return data;
         }
-//        }
         return -1;
     }
 
@@ -232,8 +208,6 @@ size_t SITLUARTDriver::write(uint8_t c)
        if(_portNumber==0 || _portNumber==2 || _portNumber==3){
            size_t size = 1;
            int bytes_write = _device->write(&c, size);
-           fprintf(stdout,"SITLUARTDriver %d write %d\n", _portNumber, bytes_write);
-           fflush(stdout);
            return bytes_write;
        }
        return ::write(_fd, &c, 1);
@@ -241,8 +215,6 @@ size_t SITLUARTDriver::write(uint8_t c)
     if(_portNumber==0 || _portNumber==2 || _portNumber==3){
        size_t size = 1;
        int bytes_write = _device->write(&c, size);
-       fprintf(stdout,"SITLUARTDriver %d write %d\n", _portNumber, bytes_write);
-       fflush(stdout);
        return bytes_write;
     }
     return send(_fd, &c, 1, flags);
@@ -252,8 +224,6 @@ size_t SITLUARTDriver::write(const uint8_t *buffer, size_t size)
 {
     if(_portNumber==0 || _portNumber==2 || _portNumber==3){
        int bytes_write = _device->write(buffer, size);
-       fprintf(stdout,"SITLUARTDriver %d write2 %d of %d\n", _portNumber, bytes_write, size);
-       fflush(stdout);
        return bytes_write;
     }
     size_t n = 0;
@@ -278,8 +248,6 @@ void SITLUARTDriver::_udp_start_connection(void)
    
    _connected = _device->open();
    _device->set_blocking(false);
-   fprintf(stdout,"SITLUARTDriver _udp_start_connection %d connected %d\n", _portNumber, _connected);
-   fflush(stdout);
 
 /*
     //bool bcast = (_flag && strcmp(_flag, "bcast") == 0);
@@ -440,8 +408,6 @@ void SITLUARTDriver::_tcp_start_client(const char *address)
 void SITLUARTDriver::_check_connection(void)
 {
     if(_portNumber==0 || _portNumber==2 || _portNumber==3){
-//        fprintf(stdout, "SITLUARTDriver::_check_connection %d \n",_portNumber);
-//        fflush(stdout);
         if (_connected) {
             // we only want 1 connection at a time
             return;
